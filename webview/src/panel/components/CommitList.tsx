@@ -71,23 +71,11 @@ export function CommitList({
 
   const handleContextMenu = useCallback(
     (e: React.MouseEvent, commit: Commit) => {
-      // Preserve the current selection when right-clicking one of its rows.
-      // A row outside the selection is treated as a single-commit selection.
-      const selected = selectedCommitHashes.includes(commit.hash)
-        ? selectedCommitHashes
-        : [commit.hash];
-      // The visible log is newest-first; Git applies cherry-picks oldest-first.
+      const selected = selectedCommitHashes.includes(commit.hash) ? selectedCommitHashes : [commit.hash];
       const selectedSet = new Set(selected);
-      const hashesOldestFirst = visibleCommits
-        .filter((item) => selectedSet.has(item.hash))
-        .map((item) => item.hash)
-        .reverse();
-      setContextMenu({
-        x: e.clientX,
-        y: e.clientY,
-        commit,
-        selectedCommitHashes: hashesOldestFirst,
-      });
+      // Rows are newest-first; multi cherry-pick requires oldest-first order.
+      const hashesOldestFirst = visibleCommits.filter((item) => selectedSet.has(item.hash)).map((item) => item.hash).reverse();
+      setContextMenu({ x: e.clientX, y: e.clientY, commit, selectedCommitHashes: hashesOldestFirst });
     },
     [selectedCommitHashes, visibleCommits],
   );
