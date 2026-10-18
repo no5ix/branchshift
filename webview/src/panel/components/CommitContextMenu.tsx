@@ -2,16 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useGitLogStore } from "../../shared/store/git-log-store-context";
 import type { Commit } from "../../shared/types/git";
-import {
-  buildCommitActions,
-  type CommitActionDefinition,
-} from "../actions/commit-actions";
+import { buildCommitActions, type CommitActionDefinition } from "../actions/commit-actions";
 
 interface CommitContextMenuProps {
   x: number;
   y: number;
   commit: Commit;
-  /** Selected commit hashes ordered oldest-to-newest. */
   selectedCommitHashes?: string[];
   onClose: () => void;
   onCreateBranch?: (hash: string, defaultName: string) => void;
@@ -131,99 +127,60 @@ export function CommitContextMenu({
   if (!repoId) return null;
 
   const selectedCount = selectedCommitHashes.length;
-  const multiCommitActions: CommitActionDefinition[] =
-    selectedCount > 1
-      ? [
-          {
-            id: "git-squash",
-            label: `Git Squash (${selectedCount} commits)...`,
-            visible: true,
-            enabled:
-              Boolean(currentBranch) &&
-              !isRebasing &&
-              !isMerging &&
-              !isCherryPicking,
-            refresh: mutationRefresh,
-            execute: async () => {
-              const inputResult = (await request(
-                "showInputBox",
-                {
-                  prompt: `Commit message for squashing ${selectedCount} commits:`,
-                  value: commit.subject,
-                  placeHolder: selectedCommitHashes.map((hash) => hash.slice(0, 8)).join(" + "),
-                },
-                { scope: "global" },
-              )) as { value: string | null };
-              const message = inputResult.value?.trim();
-              if (!message) return "none";
-              const confirmation = (await request(
-                "showConfirmMessage",
-                {
-                  message: `Squash ${selectedCount} consecutive commits into one on '${currentBranch}'? This rewrites local history. The selection must end at HEAD, contain no merge commits, and the working tree must be clean.`,
-                  confirmLabel: "Git Squash",
-                },
-                { scope: "global" },
-              )) as { confirmed: boolean };
-              if (!confirmation.confirmed) return "none";
-              try {
-                await requestWithProgress(
-                  "squashCommits",
-                  { hashes: selectedCommitHashes, message },
-                  { repoId },
-                );
-                return mutationRefresh;
-              } catch (error) {
-                const detail = error instanceof Error ? error.message : String(error);
-                await request("showErrorNotification", {
-                  message: `Git Squash failed: ${detail}`,
-                }, { scope: "global" });
-                return "none";
-              }
-            },
-          },
-          {
-            id: "cherry-pick-selected",
-            label: `Cherry-Pick ${selectedCount} Commits`,
-            visible: true,
-            enabled: !isRebasing && !isMerging && !isCherryPicking,
-            refresh: mutationRefresh,
-            execute: async () => {
-              const confirmation = (await request(
-                "showConfirmMessage",
-                {
-                  message: `Cherry-pick ${selectedCount} selected commits onto '${currentBranch || "detached HEAD"}' in oldest-to-newest order?`,
-                  confirmLabel: "Cherry-Pick",
-                },
-                { scope: "global" },
-              )) as { confirmed: boolean };
-              if (!confirmation.confirmed) return "none";
-              try {
-                await requestWithProgress(
-                  "cherryPick",
-                  { hashes: selectedCommitHashes },
-                  { repoId },
-                );
-                return mutationRefresh;
-              } catch (error) {
-                const detail = error instanceof Error ? error.message : String(error);
-                await request("showErrorNotification", {
-                  message: `Cherry-pick failed: ${detail}`,
-                }, { scope: "global" });
-                return "none";
-              }
-            },
-          },
-          {
-            id: "multi-commit-separator",
-            label: "",
-            separator: true,
-            visible: true,
-            enabled: false,
-            refresh: "none",
-            execute: async () => "none",
-          },
-        ]
-      : [];
+  const multiCommitActions: CommitActionDefinition[] = selectedCount > 1 ? [
+    {
+      id: "git-squash",
+      label: `Git Squash (${selectedCount} commits)...`,
+      visible: true,
+      enabled: Boolean(currentBranch) && !isRebasing && !isMerging && !isCherryPicking,
+      refresh: mutationRefresh,
+      execute: async () => {
+        const inputResult = await request("showInputBox", {
+          prompt: `Commit message for squashing ${selectedCount} commits:`,
+          value: commit.subject,
+          placeHolder: selectedCommitHashes.map((hash) => hash.slice(0, 8)).join(" + "),
+        }, { scope: "global" }) as { value: string | null };
+        const message = inputResult.value?.trim();
+        if (!message) return "none";
+        const confirmation = await request("showConfirmMessage", {
+          message: `Squash ${selectedCount} consecutive commits into one on '${currentBranch}'? This rewrites local history. Selection must end at HEAD, contain no merge commits, and the working tree must be clean.`,
+          confirmLabel: "Git Squash",
+        }, { scope: "global" }) as { confirmed: boolean };
+        if (!confirmation.confirmed) return "none";
+        try {
+          await requestWithProgress("squashCommits", { hashes: selectedCommitHashes, message }, { repoId });
+          return mutationRefresh;
+        } catch (error) {
+          const detail = error instanceof Error ? error.message : String(error);
+          await request("showErrorNotification", { message: `Git Squash failed: ${detail}` }, { scope: "global" });
+          return "none";
+        }
+      },
+    },
+    {
+      id: "cherry-pick-selected",
+      label: `Cherry-Pick ${selectedCount} Commits`,
+      visible: true,
+      enabled: !isRebasing && !isMerging && !isCherryPicking,
+      refresh: mutationRefresh,
+      execute: async () => {
+        const confirmation = await request("showConfirmMessage", {
+          message: `Cherry-pick ${selectedCount} selected commits onto '${currentBranch || "detached HEAD"}' in oldest-to-newest order?`,
+          confirmLabel: "Cherry-Pick",
+        }, { scope: "global" }) as { confirmed: boolean };
+        if (!confirmation.confirmed) return "none";
+        try {
+          await requestWithProgress("cherryPick", { hashes: selectedCommitHashes }, { repoId });
+          return mutationRefresh;
+        } catch (error) {
+          const detail = error instanceof Error ? error.message : String(error);
+          await request("showErrorNotification", { message: `Cherry-pick failed: ${detail}` }, { scope: "global" });
+          return "none";
+        }
+      },
+    },
+    { id: "multi-commit-separator", label: "", separator: true, visible: true, enabled: false, refresh: "none", execute: async () => "none" },
+  ] : [];
 
   const actions = [
     ...multiCommitActions,
