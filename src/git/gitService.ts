@@ -895,6 +895,65 @@ export class GitService {
     this.invalidateCache();
   }
 
+  /** Cherry-pick selected commits in chronological order (oldest first). */
+  async cherryPickMany(hashes: string[]): Promise<void> {
+    this.validateCommitHashList(hashes, 2);
+    const [rebaseState, mergeState, cherryPickState] = await Promise.all([
+      this.getRebaseState(), this.getMergeState(), this.getCherryPickState(),
+    ]);
+    if (rebaseState.isRebasing || mergeState.isMerging || cherryPickState.isCherryPicking) {
+      throw new Error("Cannot cherry-pick multiple commits while another Git operation is in progress.");
+    }
+    const status = await this.execGit(["status", "--porcelain"]);
+    if (status.trim()) throw new Error("Multiple cherry-pick requires a clean working tree. Commit, stash, or discard your changes first.");
+    await this.execGit(["cherry-pick", ...hashes]);
+    this.invalidateCache();
+  }
+
+  /** Squash consecutive non-merge commits at HEAD. Hashes are oldest-to-newest. */
+  async squashCommits(hashes: string[], message: string): Promise<void> {
+    this.validateCommitHashList(hashes, 2);
+    const commitMessage = message.trim();
+    if (!commitMessage) throw new Error("A commit message is required to squash commits.");
+    const currentBranch = (await this.execGit(["branch", "--show-current"])).trim();
+    if (!currentBranch) throw new Error("Git Squash requires a checked-out local branch; HEAD is detached.");
+    const [rebaseState, mergeState, cherryPickState] = await Promise.all([
+      this.getRebaseState(), this.getMergeState(), this.getCherryPickState(),
+    ]);
+    if (rebaseState.isRebasing || mergeState.isMerging || cherryPickState.isCherryPicking) {
+      throw new Error("Cannot squash commits while another Git operation is in progress.");
+    }
+    const status = await this.execGit(["status", "--porcelain"]);
+    if (status.trim()) throw new Error("Git Squash requires a clean working tree. Commit, stash, or discard your changes first.");
+    const head = (await this.execGit(["rev-parse", "HEAD"])).trim();
+    if (hashes[hashes.length - 1] !== head) {
+      throw new Error("Git Squash can only combine consecutive commits that end at the current HEAD. Select the latest commit and its consecutive ancestors.");
+    }
+    for (let index = 0; index < hashes.length; index += 1) {
+      const parents = await this.getCommitParents(hashes[index]);
+      if (parents.length !== 1) throw new Error("Git Squash currently supports consecutive non-merge commits only.");
+      if (index === 0) {
+        if (!parents[0]) throw new Error("The initial commit cannot be included in Git Squash.");
+      } else if (parents[0] !== hashes[index - 1]) {
+        throw new Error("Selected commits are not consecutive in oldest-to-newest order. Select the complete commit sequence and try again.");
+      }
+    }
+    try {
+      await this.execGit(["reset", "--soft", `${hashes[0]}^`]);
+      await this.executor.withInput(["commit", "-F", "-"], commitMessage);
+    } finally {
+      this.invalidateCache();
+    }
+  }
+
+  private validateCommitHashList(hashes: string[], minimumCount: number): void {
+    if (!Array.isArray(hashes) || hashes.length < minimumCount) throw new Error(`Select at least ${minimumCount} commits.`);
+    if (hashes.some((hash) => !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i.test(hash))) {
+      throw new Error("One or more selected commit IDs are invalid. Refresh Git Log and try again.");
+    }
+    if (new Set(hashes).size !== hashes.length) throw new Error("The same commit was selected more than once.");
+  }
+
   async checkoutCommit(hash: string): Promise<void> {
     await this.execGit(["checkout", hash]);
     this.invalidateCache();
