@@ -55,7 +55,7 @@ export function CommitList({
   const columnWidthsRef = useRef(columnWidths);
   columnWidthsRef.current = columnWidths;
 
-  const selectedCommitHashes = useGitLogStore((s) => s.selectedCommitHashes);
+  const selectedCommitHashesForMenu = useGitLogStore((s) => s.selectedCommitHashes);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -71,13 +71,15 @@ export function CommitList({
 
   const handleContextMenu = useCallback(
     (e: React.MouseEvent, commit: Commit) => {
-      const selected = selectedCommitHashes.includes(commit.hash) ? selectedCommitHashes : [commit.hash];
+      const selected = selectedCommitHashesForMenu.includes(commit.hash)
+        ? selectedCommitHashesForMenu
+        : [commit.hash];
       const selectedSet = new Set(selected);
       // Rows are newest-first; multi cherry-pick requires oldest-first order.
       const hashesOldestFirst = visibleCommits.filter((item) => selectedSet.has(item.hash)).map((item) => item.hash).reverse();
       setContextMenu({ x: e.clientX, y: e.clientY, commit, selectedCommitHashes: hashesOldestFirst });
     },
-    [selectedCommitHashes, visibleCommits],
+    [selectedCommitHashesForMenu, visibleCommits],
   );
 
   const closeContextMenu = useCallback(() => {
