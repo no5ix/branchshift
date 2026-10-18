@@ -1013,9 +1013,43 @@ export async function activate(context: vscode.ExtensionContext) {
   messageRouter.handle("cherryPick", async (params, ctx) => {
     if (!ctx) return NOT_GIT_REPO;
     const { gitService } = ctx;
-    const hash = params.hash as string;
+    const hashes = Array.isArray(params.hashes)
+      ? (params.hashes as string[])
+      : [params.hash as string];
+    if (hashes.some((hash) => !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i.test(hash))) {
+      return {
+        success: false,
+        error: { code: ErrorCode.INVALID_REF, message: "Invalid commit hash in cherry-pick selection" },
+      };
+    }
     return withProgress(messageRouter, ctx.repoId, async () => {
-      await gitService.cherryPick(hash);
+      if (hashes.length > 1) await gitService.cherryPickMany(hashes);
+      else if (hashes.length === 1) await gitService.cherryPick(hashes[0]);
+      else throw new Error("Select at least one commit to cherry-pick.");
+      messageRouter.broadcastEvent("gitStateChanged", {
+        scope: "all",
+        repoId: ctx.repoId,
+      });
+      return { success: true };
+    });
+  });
+
+  messageRouter.handle("squashCommits", async (params, ctx) => {
+    if (!ctx) return NOT_GIT_REPO;
+    const hashes = params.hashes as string[];
+    const message = params.message as string;
+    if (
+      !Array.isArray(hashes) ||
+      hashes.length < 2 ||
+      hashes.some((hash) => !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i.test(hash))
+    ) {
+      return {
+        success: false,
+        error: { code: ErrorCode.INVALID_REF, message: "Select at least two valid commits to squash." },
+      };
+    }
+    return withProgress(messageRouter, ctx.repoId, async () => {
+      await ctx.gitService.squashCommits(hashes, message);
       messageRouter.broadcastEvent("gitStateChanged", {
         scope: "all",
         repoId: ctx.repoId,

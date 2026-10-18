@@ -55,10 +55,12 @@ export function CommitList({
   const columnWidthsRef = useRef(columnWidths);
   columnWidthsRef.current = columnWidths;
 
+  const selectedCommitHashes = useGitLogStore((s) => s.selectedCommitHashes);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
     commit: Commit;
+    selectedCommitHashes: string[];
   } | null>(null);
 
   // Create branch dialog state (triggered from commit context menu)
@@ -69,9 +71,25 @@ export function CommitList({
 
   const handleContextMenu = useCallback(
     (e: React.MouseEvent, commit: Commit) => {
-      setContextMenu({ x: e.clientX, y: e.clientY, commit });
+      // Preserve the current selection when right-clicking one of its rows.
+      // A row outside the selection is treated as a single-commit selection.
+      const selected = selectedCommitHashes.includes(commit.hash)
+        ? selectedCommitHashes
+        : [commit.hash];
+      // The visible log is newest-first; Git applies cherry-picks oldest-first.
+      const selectedSet = new Set(selected);
+      const hashesOldestFirst = visibleCommits
+        .filter((item) => selectedSet.has(item.hash))
+        .map((item) => item.hash)
+        .reverse();
+      setContextMenu({
+        x: e.clientX,
+        y: e.clientY,
+        commit,
+        selectedCommitHashes: hashesOldestFirst,
+      });
     },
-    [],
+    [selectedCommitHashes, visibleCommits],
   );
 
   const closeContextMenu = useCallback(() => {
@@ -384,6 +402,7 @@ export function CommitList({
             x={contextMenu.x}
             y={contextMenu.y}
             commit={contextMenu.commit}
+            selectedCommitHashes={contextMenu.selectedCommitHashes}
             onClose={closeContextMenu}
             onRefreshComparison={onRefreshComparison}
             onCreateBranch={(hash, _defaultName) => {
