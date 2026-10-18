@@ -130,7 +130,7 @@ export function CommitContextMenu({
   const multiCommitActions: CommitActionDefinition[] = selectedCount > 1 ? [
     {
       id: "git-squash",
-      label: `Git Squash (${selectedCount} commits)...`,
+      label: "Git Squash...",
       visible: true,
       enabled: Boolean(currentBranch) && !isRebasing && !isMerging && !isCherryPicking,
       refresh: mutationRefresh,
@@ -233,7 +233,12 @@ export function CommitContextMenu({
       }, 500);
     },
   }),
-  ].filter((action) => action.visible);
+  ].filter(
+    (action) =>
+      action.visible &&
+      // Don't leave the single-commit cherry-pick beside the multi-pick action.
+      !(selectedCount > 1 && action.id === "cherry-pick"),
+  );
 
   const execute = async (action: (typeof actions)[number]) => {
     if (!action.enabled) return;
