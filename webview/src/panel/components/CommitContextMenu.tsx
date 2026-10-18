@@ -185,7 +185,7 @@ export function CommitContextMenu({
   const actions = [
     ...multiCommitActions,
     ...buildCommitActions({
-    repoId,
+      repoId,
     commit,
     currentBranch,
     fileFilter: filter.file,
