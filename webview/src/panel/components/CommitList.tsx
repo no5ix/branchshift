@@ -379,6 +379,27 @@ export function CommitList({
             x={contextMenu.x}
             y={contextMenu.y}
             commit={contextMenu.commit}
+            onPasteCommitSequence={async (targetCommit) => {
+              const targetIndex = visibleCommits.findIndex((item) => item.hash === targetCommit.hash);
+              if (targetIndex < 0) return;
+              const hashesOldestToNewest = visibleCommits
+                .slice(0, targetIndex + 1)
+                .map((item) => item.hash)
+                .reverse();
+              try {
+                await request("copyToClipboard", {
+                  text: hashesOldestToNewest.join("\n"),
+                }, { scope: "global" });
+                await request("showInfoNotification", {
+                  message: `Copied ${hashesOldestToNewest.length} commit rows in oldest-to-newest order.`,
+                }, { scope: "global" });
+              } catch (error) {
+                const detail = error instanceof Error ? error.message : String(error);
+                await request("showErrorNotification", {
+                  message: `Could not copy commit rows: ${detail}`,
+                }, { scope: "global" });
+              }
+            }}
             onClose={closeContextMenu}
             onRefreshComparison={onRefreshComparison}
             onCreateBranch={(hash, _defaultName) => {
