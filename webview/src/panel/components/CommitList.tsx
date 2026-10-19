@@ -388,7 +388,9 @@ export function CommitList({
                 .reverse();
               try {
                 await request("copyToClipboard", {
-                  text: hashesOldestToNewest.join("\n"),
+                  text: hashesOldestToNewest
+                    .map((hash) => visibleCommits.find((item) => item.hash === hash)?.subject ?? hash)
+                    .join("\n"),
                 }, { scope: "global" });
                 await request("showInfoNotification", {
                   message: `Copied ${hashesOldestToNewest.length} commit rows in oldest-to-newest order.`,
