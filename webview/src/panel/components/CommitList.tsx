@@ -387,10 +387,18 @@ export function CommitList({
                 .map((item) => item.hash)
                 .reverse();
               try {
+                const rows = hashesOldestToNewest.map((hash) => {
+                  const row = visibleCommits.find((item) => item.hash === hash);
+                  if (!row) return hash;
+                  return [
+                    row.subject,
+                    row.authorName,
+                    row.authorDate,
+                    row.shortHash,
+                  ].join("\t");
+                });
                 await request("copyToClipboard", {
-                  text: hashesOldestToNewest
-                    .map((hash) => visibleCommits.find((item) => item.hash === hash)?.subject ?? hash)
-                    .join("\n"),
+                  text: rows.join("\n"),
                 }, { scope: "global" });
                 await request("showInfoNotification", {
                   message: `Copied ${hashesOldestToNewest.length} commit rows in oldest-to-newest order.`,
