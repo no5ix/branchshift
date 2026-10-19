@@ -325,6 +325,7 @@ export function CommitList({
         ref={parentRef}
         tabIndex={0}
         aria-label="Commit list"
+        data-branchshift-commit-list
         onKeyDown={handleKeyDown}
         onMouseDown={(event) => {
           if (event.button === 0)
