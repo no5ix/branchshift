@@ -57,7 +57,7 @@ export class PushPanel {
     this.panel = vscode.window.createWebviewPanel(
       "branchshift.pushPanel",
       `Push Commits to ${branchName}`,
-      vscode.ViewColumn.One,
+      vscode.window.activeTextEditor?.viewColumn ?? vscode.ViewColumn.Beside,
       {
         enableScripts: true,
         localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, "dist")],

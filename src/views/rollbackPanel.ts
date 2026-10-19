@@ -52,7 +52,7 @@ export class RollbackPanel {
     this.panel = vscode.window.createWebviewPanel(
       "branchshift.rollbackPanel",
       "Rollback Changes",
-      vscode.ViewColumn.One,
+      vscode.window.activeTextEditor?.viewColumn ?? vscode.ViewColumn.Beside,
       {
         enableScripts: true,
         localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, "dist")],

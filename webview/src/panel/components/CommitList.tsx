@@ -106,60 +106,54 @@ export function CommitList({
     void selectCommit(hash, mode, allVisibleCommitHashes);
   });
 
-  // Keyboard navigation (Arrow Up/Down)
+  // Keyboard navigation works when focus is on the list or a commit row.
   const selectedCommitHashes = useGitLogStore((s) => s.selectedCommitHashes);
 
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+    (e: React.KeyboardEvent<HTMLElement>) => {
+      if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
       if (!visibleCommits.length) return;
 
-      // Only handle when no input is focused
-      const active = document.activeElement;
+      const target = e.target;
       if (
-        active instanceof HTMLInputElement ||
-        active instanceof HTMLTextAreaElement
-      )
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        (target instanceof HTMLElement && target.isContentEditable)
+      ) return;
+
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        // Use horizontal arrows to move focus between focusable controls in this
+        // panel; never steal them from text inputs or editable controls.
+        const container = parentRef.current?.closest("[data-branchshift-panel]");
+        const focusable = Array.from(
+          container?.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+          ) ?? [],
+        ).filter((element) => element.offsetParent !== null);
+        const current = focusable.indexOf(document.activeElement as HTMLElement);
+        const nextIndex = e.key === "ArrowRight" ? current + 1 : current - 1;
+        if (current >= 0 && focusable[nextIndex]) {
+          e.preventDefault();
+          focusable[nextIndex].focus();
+        }
         return;
-
-      e.preventDefault();
-
-      const currentHash =
-        selectedCommitHashes.length > 0
-          ? selectedCommitHashes[selectedCommitHashes.length - 1]
-          : null;
-      const currentIdx = currentHash
-        ? visibleCommits.findIndex((c) => c.hash === currentHash)
-        : -1;
-
-      let nextIdx: number;
-      if (e.key === "ArrowUp") {
-        nextIdx = currentIdx <= 0 ? 0 : currentIdx - 1;
-      } else {
-        nextIdx =
-          currentIdx >= visibleCommits.length - 1
-            ? visibleCommits.length - 1
-            : currentIdx + 1;
       }
 
-      const nextHash = visibleCommits[nextIdx].hash;
-      void selectCommit(nextHash, "single", allVisibleCommitHashes);
-
-      // Scroll the selected row into view with some padding
-      // Show 3 rows ahead so user can see upcoming items
-      const scrollIdx =
-        e.key === "ArrowDown"
-          ? Math.min(nextIdx + 3, visibleCommits.length - 1)
-          : Math.max(nextIdx - 3, 0);
-      virtualizer.scrollToIndex(scrollIdx, { align: "auto" });
+      e.preventDefault();
+      const currentHash = selectedCommitHashes.at(-1) ?? null;
+      const currentIdx = currentHash
+        ? visibleCommits.findIndex((commit) => commit.hash === currentHash)
+        : -1;
+      const direction = e.key === "ArrowUp" ? -1 : 1;
+      const nextIdx =
+        currentIdx < 0
+          ? direction < 0 ? visibleCommits.length - 1 : 0
+          : Math.max(0, Math.min(visibleCommits.length - 1, currentIdx + direction));
+      void selectCommit(visibleCommits[nextIdx].hash, "single", allVisibleCommitHashes);
+      virtualizer.scrollToIndex(nextIdx, { align: "auto" });
     },
-    [
-      visibleCommits,
-      selectedCommitHashes,
-      selectCommit,
-      allVisibleCommitHashes,
-      virtualizer,
-    ],
+    [visibleCommits, selectedCommitHashes, selectCommit, allVisibleCommitHashes, virtualizer],
   );
 
   const handleScroll = useCallback(() => {
@@ -331,6 +325,7 @@ export function CommitList({
         ref={parentRef}
         tabIndex={0}
         aria-label="Commit list"
+        data-branchshift-commit-list
         onKeyDown={handleKeyDown}
         onMouseDown={(event) => {
           if (event.button === 0)
@@ -384,6 +379,29 @@ export function CommitList({
             x={contextMenu.x}
             y={contextMenu.y}
             commit={contextMenu.commit}
+            onPasteCommitSequence={async (targetCommit) => {
+              const targetIndex = visibleCommits.findIndex((item) => item.hash === targetCommit.hash);
+              if (targetIndex < 0) return;
+              const hashesOldestToNewest = visibleCommits
+                .slice(0, targetIndex + 1)
+                .map((item) => item.hash)
+                .reverse();
+              try {
+                await request("copyToClipboard", {
+                  text: hashesOldestToNewest
+                    .map((hash) => visibleCommits.find((item) => item.hash === hash)?.subject ?? hash)
+                    .join("\n"),
+                }, { scope: "global" });
+                await request("showInfoNotification", {
+                  message: `Copied ${hashesOldestToNewest.length} commit rows in oldest-to-newest order.`,
+                }, { scope: "global" });
+              } catch (error) {
+                const detail = error instanceof Error ? error.message : String(error);
+                await request("showErrorNotification", {
+                  message: `Could not copy commit rows: ${detail}`,
+                }, { scope: "global" });
+              }
+            }}
             onClose={closeContextMenu}
             onRefreshComparison={onRefreshComparison}
             onCreateBranch={(hash, _defaultName) => {

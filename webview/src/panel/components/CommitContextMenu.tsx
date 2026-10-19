@@ -8,6 +8,7 @@ interface CommitContextMenuProps {
   x: number;
   y: number;
   commit: Commit;
+  onPasteCommitSequence?: (commit: Commit) => Promise<void>;
   onClose: () => void;
   onCreateBranch?: (hash: string, defaultName: string) => void;
   onRefreshComparison?: () => void | Promise<void>;
@@ -17,6 +18,7 @@ export function CommitContextMenu({
   x,
   y,
   commit,
+  onPasteCommitSequence,
   onClose,
   onCreateBranch,
   onRefreshComparison,
@@ -124,7 +126,23 @@ export function CommitContextMenu({
 
   if (!repoId) return null;
 
-  const actions = buildCommitActions({
+  const pasteSequenceAction = onPasteCommitSequence
+    ? [{
+        id: "paste-commit-sequence",
+        label: "Paste All the rows above this row in the order from early to late, including this row",
+        visible: true,
+        enabled: true,
+        refresh: "none" as const,
+        execute: async () => {
+          await onPasteCommitSequence(commit);
+          return "none" as const;
+        },
+      }]
+    : [];
+
+  const actions = [
+    ...pasteSequenceAction,
+    ...buildCommitActions({
     repoId,
     commit,
     currentBranch,
@@ -172,7 +190,8 @@ export function CommitContextMenu({
         void selectCommit(hash);
       }, 500);
     },
-  }).filter((action) => action.visible);
+  }),
+  ].filter((action) => action.visible);
 
   const execute = async (action: (typeof actions)[number]) => {
     if (!action.enabled) return;
