@@ -232,6 +232,11 @@ describe("CommitList ref navigation", () => {
         expect(top.store.getState().selectedCommitHash).toBe("top-b"),
       );
       expect(bottom.store.getState().selectedCommitHash).toBe("bottom-a");
+
+      fireEvent.keyDown(topRow as HTMLElement, { key: "ArrowLeft" });
+      fireEvent.keyDown(topRow as HTMLElement, { key: "ArrowRight" });
+      expect(top.store.getState().selectedCommitHash).toBe("top-b");
+      expect(bottom.store.getState().selectedCommitHash).toBe("bottom-a");
     } finally {
       top.dispose();
       bottom.dispose();

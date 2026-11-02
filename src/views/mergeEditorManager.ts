@@ -30,7 +30,7 @@ export class MergeEditorManager {
     const panel = vscode.window.createWebviewPanel(
       "branchshift.mergeEditor",
       `Merge: ${fileName}`,
-      vscode.ViewColumn.One,
+      vscode.window.activeTextEditor?.viewColumn ?? vscode.ViewColumn.Beside,
       {
         enableScripts: true,
         retainContextWhenHidden: true,

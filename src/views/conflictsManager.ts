@@ -42,7 +42,7 @@ export class ConflictsManager {
     const panel = vscode.window.createWebviewPanel(
       "branchshift.conflicts",
       "Conflicts",
-      vscode.ViewColumn.One,
+      vscode.window.activeTextEditor?.viewColumn ?? vscode.ViewColumn.Beside,
       {
         enableScripts: true,
         retainContextWhenHidden: true,

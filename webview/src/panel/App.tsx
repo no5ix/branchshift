@@ -143,6 +143,7 @@ function PanelContent() {
 
   return (
     <div
+      data-branchshift-panel
       style={{
         height: "100%",
         display: "flex",

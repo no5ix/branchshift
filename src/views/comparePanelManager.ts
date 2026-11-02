@@ -100,7 +100,7 @@ export class ComparePanelManager implements ComparePanelOpener {
     const panel = vscode.window.createWebviewPanel(
       "branchshift.compare",
       `Compare: ${selectedRef.name} ↔ ${currentRef.name}`,
-      vscode.ViewColumn.One,
+      vscode.window.activeTextEditor?.viewColumn ?? vscode.ViewColumn.Beside,
       {
         enableScripts: true,
         retainContextWhenHidden: true,
