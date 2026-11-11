@@ -158,6 +158,7 @@ export type CommandType =
   | "cherryPickAction"
   | "checkoutCommit"
   | "cherryPick"
+  | "squashCommits"
   | "cherryPickFileChanges"
   | "createTag"
   | "resetToCommit"
