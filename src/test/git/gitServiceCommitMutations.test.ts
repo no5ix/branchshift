@@ -37,10 +37,7 @@ async function setupRepo(): Promise<{
   await git(repo, "add", "history.txt");
   await git(repo, "commit", "-m", "first feature commit");
   const first = await git(repo, "rev-parse", "HEAD");
-  await fs.writeFile(
-    path.join(repo, "history.txt"),
-    "base\nfirst\nsecond\n",
-  );
+  await fs.writeFile(path.join(repo, "history.txt"), "base\nfirst\nsecond\n");
   await git(repo, "add", "history.txt");
   await git(repo, "commit", "-m", "second feature commit");
   const second = await git(repo, "rev-parse", "HEAD");
@@ -92,10 +89,7 @@ describe("GitService multi-commit operations", () => {
     const fixture = await setupRepo();
     try {
       await assert.rejects(
-        fixture.service.squashCommits(
-          [fixture.base, fixture.first],
-          "invalid",
-        ),
+        fixture.service.squashCommits([fixture.base, fixture.first], "invalid"),
         /consecutive commits that end at the current HEAD/,
       );
       assert.strictEqual(

@@ -1,6 +1,9 @@
 .vscode/**
 .vscode-test/**
 .claude/**
+.pi/**
+.codegraph/**
+.DS_Store
 .idea/**
 .superpowers/**
 .git/sdd/**
