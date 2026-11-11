@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Bridge, LogQueryRevision } from "../bridge/types";
-import type { Commit, GitRefIdentity } from "../types/git";
+import type { BranchInfo, Commit, GitRefIdentity, TagInfo } from "../types/git";
 
 // Capture the event handler registered by panel-store at import time so the
 // test can dispatch events into it. panel-store calls bridge.onEvent(cb) once
@@ -483,6 +483,73 @@ describe("git log store instances", () => {
       commitFiles: [],
       selectedFilePath: null,
     });
+    instance.dispose();
+  });
+
+  it("keeps the branches and tags it fetched when the graph query rejects", async () => {
+    const branches: BranchInfo[] = [
+      {
+        name: "main",
+        fullRef: "refs/heads/main",
+        isRemote: false,
+        isCurrent: true,
+        isFavorite: false,
+        ahead: 0,
+        behind: 0,
+        lastCommitHash: "a".repeat(40),
+      },
+      {
+        name: "fix/selection-toolbar",
+        fullRef: "refs/heads/fix/selection-toolbar",
+        isRemote: false,
+        isCurrent: false,
+        isFavorite: false,
+        ahead: 0,
+        behind: 0,
+        lastCommitHash: "b".repeat(40),
+      },
+    ];
+    const tags: TagInfo[] = [
+      {
+        name: "v1.0.0",
+        fullRef: "refs/tags/v1.0.0",
+        hash: "c".repeat(40),
+        targetCommitHash: "c".repeat(40),
+        isFavorite: false,
+        isAnnotated: false,
+      },
+    ];
+    // Reproduces the deleted-branch outage: refs resolve, then the log query for
+    // the deleted filter ref fails. The sidebar must survive the failure.
+    const request = vi.fn(async (command: string) => {
+      if (command === "getBranches") return branches;
+      if (command === "getTags") return tags;
+      if (command === "getGraphData") {
+        throw new Error(
+          "fatal: ambiguous argument 'refs/heads/fix/selection-toolbar': unknown revision or path not in the working tree.",
+        );
+      }
+      return [];
+    });
+    useRepoStore.setState({ activeRepoId: "repo-a" });
+    const instance = createGitLogStore({
+      repoId: null,
+      history: { kind: "ordinary" },
+      followGlobalActiveRepo: true,
+      showCurrentReachability: true,
+      bridge: createFakeBridge(request).bridge,
+    });
+
+    await instance.store.getState().fetchInitialData();
+
+    const state = instance.store.getState();
+    expect(state.commits).toEqual([]);
+    expect(state.branches).toEqual(branches);
+    expect(state.tags).toEqual(tags);
+    expect(state.currentBranch).toBe("main");
+    expect(state.loadError?.kind).toBe("generic");
+    expect(state.loading).toBe(false);
+
     instance.dispose();
   });
 

@@ -50,6 +50,56 @@ function ProgressBar({ visible }: { visible: boolean }) {
   );
 }
 
+/**
+ * Load-failure banner for the Git Log.
+ *
+ * The panel's only automatic refresh trigger is a `gitStateChanged` event, so a
+ * failed load used to leave an empty panel with no way back short of reloading
+ * the window. The message names the failure and Reload re-runs the query.
+ */
+function LoadErrorBanner() {
+  const loadError = useGitLogStore((s) => s.loadError);
+  const refresh = useGitLogStore((s) => s.refresh);
+  if (!loadError) return null;
+  return (
+    <div
+      role="alert"
+      data-testid="panel-load-error"
+      data-state={loadError.kind}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "6px 8px",
+        flexShrink: 0,
+        borderBottom: "1px solid var(--border)",
+        color: "var(--app-fg)",
+        fontSize: "var(--font-size, 13px)",
+      }}
+    >
+      <span style={{ flex: 1, minWidth: 0 }}>
+        {loadError.kind === "repository-unavailable"
+          ? "Repository unavailable."
+          : `Git Log could not load: ${loadError.message}`}
+      </span>
+      <button
+        type="button"
+        data-testid="panel-load-error-reload"
+        onClick={() => void refresh()}
+        style={{
+          flexShrink: 0,
+          padding: "2px 8px",
+          background: "var(--button-bg)",
+          color: "var(--button-fg)",
+          border: "1px solid var(--border)",
+        }}
+      >
+        Reload
+      </button>
+    </div>
+  );
+}
+
 function PanelContent() {
   const loading = useGitLogStore((s) => s.loading);
   const operationInProgress = useGitLogStore((s) => s.operationInProgress);
@@ -252,6 +302,7 @@ function PanelContent() {
                 }}
               >
                 <Toolbar />
+                <LoadErrorBanner />
                 <GitGraphPanel />
               </div>
             </Allotment.Pane>

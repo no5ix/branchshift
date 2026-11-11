@@ -197,4 +197,52 @@ describe("structured log handlers", () => {
       hasMore: true,
     });
   });
+
+  it("reports ref-unavailable for a legacy branch filter whose branch is gone", async () => {
+    const deletedRef = {
+      type: "local" as const,
+      name: "fix/selection-toolbar-three-second-timeout",
+      fullRef: "refs/heads/fix/selection-toolbar-three-second-timeout",
+    };
+    const { router } = setup({
+      resolveCommitRef: async (ref: string) =>
+        ref === deletedRef.fullRef ? null : `${ref}-tip`,
+    } as Partial<GitService>);
+
+    const response = await request(router, "getGraphData", {
+      branch: deletedRef.fullRef,
+      currentRef: mainRef,
+    });
+
+    assert.strictEqual(response.success, true);
+    assert.deepStrictEqual(response.data, {
+      status: "ref-unavailable",
+      ref: deletedRef,
+    });
+  });
+
+  it("passes a resolvable legacy branch filter through to the graph query", async () => {
+    let receivedOptions: LogOptions | undefined;
+    const { router } = setup({
+      getGraphTopology: async (options: LogOptions) => {
+        receivedOptions = options;
+        return {
+          graphData: { commits: [], lanes: {} },
+          snapshot: {
+            activeLanes: [],
+            laneColors: [],
+            nextColorIndex: 0,
+          },
+        };
+      },
+    } as unknown as Partial<GitService>);
+
+    const response = await request(router, "getGraphData", {
+      branch: featureRef.fullRef,
+    });
+
+    assert.strictEqual(receivedOptions?.branch, featureRef.fullRef);
+    assert.strictEqual(response.success, true);
+    assert.ok(response.data && Object.hasOwn(response.data, "graphData"));
+  });
 });

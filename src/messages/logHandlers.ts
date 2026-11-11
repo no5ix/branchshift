@@ -1,5 +1,6 @@
 import type { GitRefIdentity } from "../git/branchDashboardState";
 import type { GitService } from "../git/gitService";
+import { refIdentityFromFullRef } from "../git/refs/refIdentity";
 import type { LogOptions, LogRevision } from "../git/types";
 import type { MessageRouter } from "./messageRouter";
 import type {
@@ -48,6 +49,24 @@ async function handleGraphPage(
       !(await context.gitService.resolveCommitRef(params.currentRef.fullRef))
     ) {
       return unavailable(params.currentRef);
+    }
+  }
+
+  // The branch filter is the one log parameter with no availability probe: it is
+  // appended to argv verbatim (`appendRevision`), so a branch deleted while the
+  // panel was filtered on it made `git log refs/heads/<gone>` fail with
+  // `fatal: ambiguous argument …`. That rejection propagated through the bridge
+  // and the panel store cleared the commits, branches AND tags it had already
+  // fetched, leaving the sidebar empty until the window was reloaded. Probe it
+  // like the structured refs so the store's existing `ref-unavailable` handling
+  // runs instead.
+  if (!params.revision && params.branch) {
+    const filterRef = refIdentityFromFullRef(params.branch);
+    if (!filterRef) {
+      throw new Error(`Invalid Git branch ref: ${params.branch}`);
+    }
+    if (!(await context.gitService.resolveCommitRef(filterRef.fullRef))) {
+      return unavailable(filterRef);
     }
   }
 
