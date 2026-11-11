@@ -60,6 +60,7 @@ function createPorts(): BranchActionPorts & {
       openCreate: vi.fn(),
       openPush: vi.fn(),
       isCurrent: vi.fn().mockReturnValue(true),
+      clearRefFilterIfViewing: vi.fn(),
       notifyError: vi.fn().mockResolvedValue(undefined),
     },
   };
@@ -144,6 +145,57 @@ describe("runBranchAction", () => {
       branch,
       false,
     );
+  });
+
+  it("clears the ref filter when the branch it scoped to is deleted", async () => {
+    const ports = createPorts();
+
+    await runBranchAction("delete", context, ports);
+
+    expect(ports.ui.clearRefFilterIfViewing).toHaveBeenCalledWith(context.ref);
+  });
+
+  it("clears the ref filter after a force delete", async () => {
+    const ports = createPorts();
+    vi.mocked(ports.operations.delete)
+      .mockRejectedValueOnce(
+        typedError("BRANCH_NOT_FULLY_MERGED", "not merged"),
+      )
+      .mockResolvedValueOnce(undefined);
+
+    await runBranchAction("delete", context, ports);
+
+    expect(ports.operations.delete).toHaveBeenLastCalledWith(
+      "repo-a",
+      branch,
+      true,
+    );
+    expect(ports.ui.clearRefFilterIfViewing).toHaveBeenCalledWith(context.ref);
+  });
+
+  it("keeps the ref filter when the delete fails", async () => {
+    const ports = createPorts();
+    vi.mocked(ports.operations.delete).mockRejectedValue(
+      typedError("GIT_ERROR", "git branch -d failed"),
+    );
+
+    await runBranchAction("delete", context, ports);
+
+    expect(ports.ui.clearRefFilterIfViewing).not.toHaveBeenCalled();
+  });
+
+  it("clears the ref filter when the filtered branch is renamed", async () => {
+    const ports = createPorts();
+    vi.mocked(ports.ui.input).mockResolvedValue("feature-renamed");
+
+    await runBranchAction("rename", context, ports);
+
+    expect(ports.operations.rename).toHaveBeenCalledWith(
+      "repo-a",
+      "feature",
+      "feature-renamed",
+    );
+    expect(ports.ui.clearRefFilterIfViewing).toHaveBeenCalledWith(context.ref);
   });
 
   it("does not merge after the checked-out branch changes during confirmation", async () => {

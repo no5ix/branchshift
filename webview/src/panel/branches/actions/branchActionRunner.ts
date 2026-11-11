@@ -23,6 +23,12 @@ export interface BranchActionUi {
     ref?: GitRefIdentity,
     currentBranch?: string,
   ): boolean;
+  /**
+   * Drop the Git Log's ref filter when the branch it was scoped to is removed
+   * (deleted or renamed). Without this the panel keeps querying a ref that no
+   * longer exists and the log stays in its unavailable-ref state.
+   */
+  clearRefFilterIfViewing(ref: GitRefIdentity): void;
   notifyError(title: string, error: BranchActionError): Promise<void>;
 }
 
@@ -136,12 +142,13 @@ export async function runBranchAction(
       if (!isActionCurrent(context, ui)) return;
       const newName = value?.trim();
       if (!newName || newName === branch.name) return;
-      await runAndPresent(
+      const renamed = await runAndPresent(
         () => operations.rename(repoId, branch.name, newName),
         "Rename failed",
         context,
         ui,
       );
+      if (renamed) ui.clearRefFilterIfViewing(ref);
       return;
     }
     case "delete":
@@ -157,6 +164,7 @@ export async function runBranchAction(
         return;
       try {
         await operations.delete(repoId, branch, false);
+        ui.clearRefFilterIfViewing(ref);
       } catch (error) {
         if (!isActionCurrent(context, ui)) return;
         const formatted = formatBranchActionError(error);
@@ -174,12 +182,13 @@ export async function runBranchAction(
           "Force Delete",
         );
         if (!isActionCurrent(context, ui) || !force) return;
-        await runAndPresent(
+        const removed = await runAndPresent(
           () => operations.delete(repoId, branch, true),
           "Force delete failed",
           context,
           ui,
         );
+        if (removed) ui.clearRefFilterIfViewing(ref);
       }
       return;
     case "update":
@@ -283,10 +292,11 @@ async function runAndPresent(
   title: string,
   context: BranchActionContext,
   ui: BranchActionUi,
-): Promise<void> {
-  if (!isActionCurrent(context, ui)) return;
+): Promise<boolean> {
+  if (!isActionCurrent(context, ui)) return false;
   try {
     await operation();
+    return true;
   } catch (error) {
     await notifyBranchActionErrorIfCurrent(
       title,
@@ -294,6 +304,7 @@ async function runAndPresent(
       context,
       ui,
     );
+    return false;
   }
 }
 
