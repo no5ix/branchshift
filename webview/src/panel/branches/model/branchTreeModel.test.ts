@@ -136,7 +136,7 @@ describe("branch tree model", () => {
     );
   });
 
-  it("orders the current ref above favorites without changing source order", () => {
+  it("orders favorites and current refs first without changing source order", () => {
     const branches = [
       branch("zebra", "refs/heads/zebra"),
       branch("alpha", "refs/heads/alpha", { isCurrent: true }),
@@ -152,8 +152,8 @@ describe("branch tree model", () => {
     });
 
     expect(snapshot.roots.map((node) => node.entry?.name)).toEqual([
-      "alpha",
       "zebra",
+      "alpha",
       "beta",
     ]);
     expect(branches.map((item) => item.name)).toEqual([
@@ -204,25 +204,28 @@ describe("branch tree model", () => {
     ]);
   });
 
-  it("pins the default branch above the checked-out branch and favorites", () => {
-    const entries = normalizeBranchEntries(
-      [
-        branch("starred", "refs/heads/starred"),
-        branch("work", "refs/heads/work", { isCurrent: true }),
-        branch("main", "refs/heads/main", { isDefault: true }),
-      ],
-      new Set(["refs/heads/starred"]),
-    );
-    const snapshot = buildBranchTreeSnapshot(entries, {
-      repoId: "repo-a",
-      grouped: true,
-    });
+  it("keeps the tree order identical when the checked-out branch changes", () => {
+    const entriesFor = (current: string) =>
+      normalizeBranchEntries(
+        [
+          branch("main", "refs/heads/main", { isDefault: true }),
+          branch("fix/starred", "refs/heads/fix/starred"),
+          branch("loose", "refs/heads/loose"),
+          branch("work", "refs/heads/work", { isCurrent: current === "work" }),
+        ],
+        new Set(["refs/heads/fix/starred"]),
+      );
+    const order = (current: string, grouped: boolean) =>
+      buildBranchTreeSnapshot(entriesFor(current), {
+        repoId: "repo-a",
+        grouped,
+      }).roots.map((node) => node.name);
 
-    expect(snapshot.roots.map((node) => node.name)).toEqual([
-      "main",
-      "work",
-      "starred",
-    ]);
+    // The tree is a stable map of the repository: checking out `work` must not
+    // lift it (or its folder) up the list.
+    expect(order("main", true)).toEqual(["main", "loose", "work", "fix"]);
+    expect(order("work", true)).toEqual(order("main", true));
+    expect(order("work", false)).toEqual(order("main", false));
   });
 
   it("keeps a favorite folder below the ungrouped branches", () => {
