@@ -495,6 +495,11 @@ export function BranchTree({ onTogglePanel }: BranchTreeProps = {}) {
         filteredRef={filter.branch}
         searchQuery={treeState.searchQuery}
         showTags={showTags}
+        showEmptyState={
+          localSnapshot.roots.length === 0 &&
+          remoteSnapshot.roots.length === 0 &&
+          tagSnapshot.roots.length === 0
+        }
         showCurrentBranchRow={
           headEntry !== undefined || headCommit !== undefined
         }

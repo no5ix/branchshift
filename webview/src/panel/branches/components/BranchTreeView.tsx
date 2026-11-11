@@ -42,6 +42,8 @@ export interface BranchTreeViewProps {
   filteredRef: string;
   searchQuery: string;
   showTags: boolean;
+  /** No local, remote, or tag refs at all (after the search filter). */
+  showEmptyState: boolean;
   showCurrentBranchRow: boolean;
   currentBranchName: string | null;
   currentBranchRowSelected: boolean;
@@ -75,6 +77,7 @@ export function BranchTreeView({
   filteredRef,
   searchQuery,
   showTags,
+  showEmptyState,
   showCurrentBranchRow,
   currentBranchName,
   currentBranchRowSelected,
@@ -173,6 +176,21 @@ export function BranchTreeView({
             <BranchTreeNodeView {...nodeProps} key={node.id} node={node} />
           ))}
         </GroupSection>
+      )}
+
+      {showEmptyState && (
+        <div
+          data-testid="branch-tree-empty"
+          style={{
+            padding: "8px 20px",
+            color: "var(--description-fg)",
+            fontSize: "var(--font-size, 13px)",
+          }}
+        >
+          {searchQuery.trim()
+            ? "No branches match this search."
+            : "No branches in this repository."}
+        </div>
       )}
 
       {menu &&

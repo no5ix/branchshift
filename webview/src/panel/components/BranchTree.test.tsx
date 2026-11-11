@@ -123,6 +123,27 @@ afterEach(() => {
 });
 
 describe("BranchTree unified refs", () => {
+  it("explains an empty ref tree instead of rendering bare section headers", () => {
+    useRepoStore.setState({ activeRepoId: "repo-a" });
+    panelStore.setState({ branches: [], tags: [], showTags: true });
+
+    const { getByPlaceholderText, getByTestId } = renderWithStore(
+      <BranchTree />,
+    );
+
+    expect(getByTestId("branch-tree-empty").textContent).toBe(
+      "No branches in this repository.",
+    );
+
+    fireEvent.change(getByPlaceholderText("Branch or tag"), {
+      target: { value: "nope" },
+    });
+
+    expect(getByTestId("branch-tree-empty").textContent).toBe(
+      "No branches match this search.",
+    );
+  });
+
   it("honors Show Tags and selects a tag as a typed ref", () => {
     seedTree(false);
     const selectRef = vi.fn();
