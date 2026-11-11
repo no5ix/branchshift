@@ -61,6 +61,8 @@ export interface BranchInfo {
   fullRef: string;
   isRemote: boolean;
   isCurrent: boolean;
+  /** Repository default branch (origin/HEAD, init.defaultBranch, main/master). */
+  isDefault?: boolean;
   isFavorite: boolean;
   upstream?: string;
   checkedOutWorktreePath?: string;

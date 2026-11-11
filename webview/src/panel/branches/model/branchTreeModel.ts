@@ -29,6 +29,7 @@ export function normalizeBranchEntries(
       scope,
       name: branch.name,
       isCurrent: branch.isCurrent,
+      isDefault: branch.isDefault === true,
       isFavorite: branch.isFavorite || favoriteRefs.has(branch.fullRef),
       branch,
     };
@@ -48,6 +49,7 @@ export function normalizeTagEntries(
     scope: "tag",
     name: tag.name,
     isCurrent: false,
+    isDefault: false,
     isFavorite: tag.isFavorite || favoriteRefs.has(tag.fullRef),
     tag,
   }));
@@ -124,33 +126,54 @@ function leaf(
   };
 }
 
-function sortTree(nodes: MutableBranchTreeNode[]): void {
-  nodes.sort(compareNodes);
-  for (const node of nodes) sortTree(node.children);
+function sortTree(nodes: MutableBranchTreeNode[], depth = 0): void {
+  nodes.sort((a, b) => compareNodes(a, b, depth));
+  for (const node of nodes) sortTree(node.children, depth + 1);
 }
 
+/**
+ * Tree order: the default branch, then the checked-out branch, then (at the
+ * root) the ungrouped branches before the folder groups, then favorites, then
+ * names.
+ *
+ * The root-only leaves-before-folders rule is what keeps `main-bak` next to
+ * `main` instead of below every folder the alphabet produced, and putting the
+ * pins above favorites means a starred branch inside `fix/` cannot drag the
+ * whole `fix` folder over the default branch. Nested levels keep folders first
+ * so `feature/*` stays grouped under `feature`.
+ */
 function compareNodes(
   a: MutableBranchTreeNode,
   b: MutableBranchTreeNode,
+  depth: number,
 ): number {
-  const favorite = containsFavorite(b) - containsFavorite(a);
-  if (favorite) return favorite;
+  const pinned = containsDefault(b) - containsDefault(a);
+  if (pinned) return pinned;
   const current = containsCurrent(b) - containsCurrent(a);
   if (current) return current;
+  if (depth === 0 && a.isLeaf !== b.isLeaf) return a.isLeaf ? -1 : 1;
+  const favorite = containsFavorite(b) - containsFavorite(a);
+  if (favorite) return favorite;
   if (a.isLeaf !== b.isLeaf) return a.isLeaf ? 1 : -1;
   return compareNames(a.name, b.name);
 }
 
 function compareEntries(a: BranchTreeEntry, b: BranchTreeEntry): number {
-  const favorite = Number(b.isFavorite) - Number(a.isFavorite);
-  if (favorite) return favorite;
+  const pinned = Number(b.isDefault) - Number(a.isDefault);
+  if (pinned) return pinned;
   const current = Number(b.isCurrent) - Number(a.isCurrent);
   if (current) return current;
+  const favorite = Number(b.isFavorite) - Number(a.isFavorite);
+  if (favorite) return favorite;
   return compareNames(a.name, b.name);
 }
 
 function compareNames(a: string, b: string): number {
   return a.localeCompare(b, undefined, { sensitivity: "base" });
+}
+
+function containsDefault(node: MutableBranchTreeNode): number {
+  return Number(node.entry?.isDefault || node.children.some(containsDefault));
 }
 
 function containsFavorite(node: MutableBranchTreeNode): number {

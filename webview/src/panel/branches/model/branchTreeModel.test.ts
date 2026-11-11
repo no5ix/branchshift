@@ -136,7 +136,7 @@ describe("branch tree model", () => {
     );
   });
 
-  it("orders favorites and current refs first without changing source order", () => {
+  it("orders the current ref above favorites without changing source order", () => {
     const branches = [
       branch("zebra", "refs/heads/zebra"),
       branch("alpha", "refs/heads/alpha", { isCurrent: true }),
@@ -152,8 +152,8 @@ describe("branch tree model", () => {
     });
 
     expect(snapshot.roots.map((node) => node.entry?.name)).toEqual([
-      "zebra",
       "alpha",
+      "zebra",
       "beta",
     ]);
     expect(branches.map((item) => item.name)).toEqual([
@@ -162,6 +162,102 @@ describe("branch tree model", () => {
       "beta",
     ]);
     expect(branches[0]?.isFavorite).toBe(false);
+  });
+
+  it("pins the default branch, then ungrouped branches, then folders", () => {
+    const entries = normalizeBranchEntries([
+      branch("feature/inline-hold", "refs/heads/feature/inline-hold"),
+      branch("fix/toc-handle", "refs/heads/fix/toc-handle"),
+      branch("feat/simplify-toc", "refs/heads/feat/simplify-toc"),
+      branch("main-bak", "refs/heads/main-bak"),
+      branch("main-bak2", "refs/heads/main-bak2"),
+      branch("main-bak3", "refs/heads/main-bak3"),
+      branch("main", "refs/heads/main", { isCurrent: true, isDefault: true }),
+    ]);
+
+    const grouped = buildBranchTreeSnapshot(entries, {
+      repoId: "repo-a",
+      grouped: true,
+    });
+    expect(grouped.roots.map((node) => node.name)).toEqual([
+      "main",
+      "main-bak",
+      "main-bak2",
+      "main-bak3",
+      "feat",
+      "feature",
+      "fix",
+    ]);
+
+    const flat = buildBranchTreeSnapshot(entries, {
+      repoId: "repo-a",
+      grouped: false,
+    });
+    expect(flat.roots.map((node) => node.name)).toEqual([
+      "main",
+      "feat/simplify-toc",
+      "feature/inline-hold",
+      "fix/toc-handle",
+      "main-bak",
+      "main-bak2",
+      "main-bak3",
+    ]);
+  });
+
+  it("pins the default branch above the checked-out branch and favorites", () => {
+    const entries = normalizeBranchEntries(
+      [
+        branch("starred", "refs/heads/starred"),
+        branch("work", "refs/heads/work", { isCurrent: true }),
+        branch("main", "refs/heads/main", { isDefault: true }),
+      ],
+      new Set(["refs/heads/starred"]),
+    );
+    const snapshot = buildBranchTreeSnapshot(entries, {
+      repoId: "repo-a",
+      grouped: true,
+    });
+
+    expect(snapshot.roots.map((node) => node.name)).toEqual([
+      "main",
+      "work",
+      "starred",
+    ]);
+  });
+
+  it("keeps a favorite folder below the ungrouped branches", () => {
+    const entries = normalizeBranchEntries(
+      [
+        branch("fix/starred", "refs/heads/fix/starred"),
+        branch("loose", "refs/heads/loose"),
+        branch("main", "refs/heads/main", { isCurrent: true, isDefault: true }),
+      ],
+      new Set(["refs/heads/fix/starred"]),
+    );
+    const snapshot = buildBranchTreeSnapshot(entries, {
+      repoId: "repo-a",
+      grouped: true,
+    });
+
+    expect(snapshot.roots.map((node) => node.name)).toEqual([
+      "main",
+      "loose",
+      "fix",
+    ]);
+  });
+
+  it("keeps folders before leaves below the root", () => {
+    const entries = normalizeBranchEntries([
+      branch("feature/x", "refs/heads/feature/x"),
+      branch("feature/sub/y", "refs/heads/feature/sub/y"),
+    ]);
+    const snapshot = buildBranchTreeSnapshot(entries, {
+      repoId: "repo-a",
+      grouped: true,
+    });
+    const feature = snapshot.roots.find((node) => node.name === "feature");
+
+    expect(feature?.children.map((node) => node.name)).toEqual(["sub", "x"]);
   });
 
   it("keeps same-path local, remote, and tag directories separate", () => {
@@ -229,9 +325,10 @@ describe("branch tree selectors", () => {
       new Set(["repo:repo-a:dir:local:feature"]),
     );
 
+    // Root order is ungrouped refs first, so `main` precedes the tag folder.
     expect(visible.map((ref) => ref.fullRef)).toEqual([
-      "refs/tags/feature/login",
       "refs/heads/main",
+      "refs/tags/feature/login",
     ]);
   });
 });
