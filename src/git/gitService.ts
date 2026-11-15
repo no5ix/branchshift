@@ -760,24 +760,24 @@ export class GitService {
     branchName: string,
   ): Promise<{ rewrittenUpstream: boolean }> {
     const upstream = await this.getUpstreamRef(branchName);
-    const before = upstream
-      ? await this.execGit([
-          "rev-parse",
-          "--verify",
-          `refs/remotes/${upstream.remote}/${upstream.branch}`,
-        ]).catch(() => "")
+    const upstreamRef = upstream
+      ? `refs/remotes/${upstream.remote}/${upstream.branch}`
       : "";
+    const before = upstreamRef
+      ? await this.execGit(["rev-parse", "--verify", upstreamRef]).catch(() => "")
+      : "";
+
     await this.execGit(["rebase", onto]);
     this.invalidateCache();
 
-    // Rebase rewrites commit hashes. If the old upstream tip is no longer
-    // an ancestor of the rebased branch, a normal push cannot update it.
-    // Return this fact to the caller so it can use --force-with-lease.
-    if (!upstream || !before.trim()) {
-      return { rewrittenUpstream: false };
-    }
-    const remoteTipIsAncestor = await this.isAncestor(before.trim(), branchName);
-    return { rewrittenUpstream: !remoteTipIsAncestor };
+    if (!upstream || !before.trim()) return { rewrittenUpstream: false };
+
+    // A force push is needed only when the rebase removed the old remote tip
+    // from the local branch history. Keep the tracking ref untouched so Git's
+    // --force-with-lease still protects against concurrent remote updates.
+    return {
+      rewrittenUpstream: !(await this.isAncestor(before.trim(), branchName)),
+    };
   }
 
   private async getUpstreamRef(
@@ -793,6 +793,21 @@ export class GitService {
     return { remote, branch: remoteRef.slice("refs/heads/".length) };
   }
 
+  async markBranchForLeasePush(branchName: string): Promise<void> {
+    await this.execGit([
+      "config",
+      `branch.${branchName}.branchshift-force-with-lease`,
+      "true",
+    ]);
+  }
+
+  async consumeLeasePushMarker(branchName: string): Promise<boolean> {
+    const key = `branch.${branchName}.branchshift-force-with-lease`;
+    const value = await this.execGit(["config", "--bool", "--get", key]).catch(() => "");
+    if (value.trim() !== "true") return false;
+    await this.execGit(["config", "--unset", key]).catch(() => "");
+    return true;
+  }
 
   private async isAncestor(ancestor: string, descendant: string): Promise<boolean> {
     try {
@@ -802,7 +817,6 @@ export class GitService {
       return false;
     }
   }
-
 
   async rebaseAction(action: "continue" | "abort" | "skip"): Promise<void> {
     if (action === "continue") {
