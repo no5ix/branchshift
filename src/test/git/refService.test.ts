@@ -172,4 +172,38 @@ describe("RefService branch queries", () => {
       await fs.rm(base, { recursive: true, force: true });
     }
   });
+  it("shows local main ahead after rebasing it onto another branch", async () => {
+    const base = await fs.mkdtemp(path.join(os.tmpdir(), "branchshift-rebase-ahead-"));
+    const repo = path.join(base, "repo");
+    const remote = path.join(base, "remote.git");
+    try {
+      await git(base, "init", "--bare", remote);
+      await git(base, "init", "-b", "main", repo);
+      await git(repo, "config", "user.name", "BranchShift Test");
+      await git(repo, "config", "user.email", "branchshift@example.com");
+      await fs.writeFile(path.join(repo, "README.md"), "initial\n");
+      await git(repo, "add", "README.md");
+      await git(repo, "commit", "-m", "initial");
+      await git(repo, "remote", "add", "origin", remote);
+      await git(repo, "push", "-u", "origin", "main");
+      await git(repo, "checkout", "-b", "feature");
+      await fs.writeFile(path.join(repo, "feature.txt"), "feature\n");
+      await git(repo, "add", "feature.txt");
+      await git(repo, "commit", "-m", "feature");
+      await git(repo, "checkout", "main");
+      await fs.writeFile(path.join(repo, "main.txt"), "main change\n");
+      await git(repo, "add", "main.txt");
+      await git(repo, "commit", "-m", "main change");
+
+      const main = (await serviceFor(repo).getBranches()).find(
+        (entry) => entry.name === "main" && !entry.isRemote,
+      );
+      assert.strictEqual(main?.upstream, "origin/main");
+      assert.strictEqual(main?.ahead, 1);
+      assert.strictEqual(main?.behind, 0);
+    } finally {
+      await fs.rm(base, { recursive: true, force: true });
+    }
+  });
+
 });
