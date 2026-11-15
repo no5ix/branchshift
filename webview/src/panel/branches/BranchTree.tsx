@@ -179,6 +179,8 @@ export function BranchTree({ onTogglePanel }: BranchTreeProps = {}) {
   latestValidRefKeys.current = validRefKeys;
   const latestCurrentBranch = useRef(currentBranch);
   latestCurrentBranch.current = currentBranch;
+  const latestFilteredRef = useRef(filter.branch);
+  latestFilteredRef.current = filter.branch;
   const overlayController = useBranchOverlay(
     activeRepoId,
     validRefKeys,
@@ -346,6 +348,14 @@ export function BranchTree({ onTogglePanel }: BranchTreeProps = {}) {
         }
         return isLatestRef(repoId, ref, latestValidRefKeys.current);
       },
+      clearRefFilterIfViewing(ref) {
+        // The ref mirror, not a closure snapshot: this runs after an async
+        // mutation, so the value captured when the menu action was created can
+        // be stale by the time the branch is gone.
+        if (latestFilteredRef.current === ref.fullRef) {
+          setFilter({ branch: "" });
+        }
+      },
       async notifyError(title, error) {
         await notifyActionError(requestFromSurface, title, error);
       },
@@ -354,6 +364,7 @@ export function BranchTree({ onTogglePanel }: BranchTreeProps = {}) {
       overlayController.openCreate,
       overlayController.openPush,
       requestFromSurface,
+      setFilter,
     ],
   );
 
@@ -484,6 +495,11 @@ export function BranchTree({ onTogglePanel }: BranchTreeProps = {}) {
         filteredRef={filter.branch}
         searchQuery={treeState.searchQuery}
         showTags={showTags}
+        showEmptyState={
+          localSnapshot.roots.length === 0 &&
+          remoteSnapshot.roots.length === 0 &&
+          tagSnapshot.roots.length === 0
+        }
         showCurrentBranchRow={
           headEntry !== undefined || headCommit !== undefined
         }

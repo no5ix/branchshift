@@ -164,6 +164,105 @@ describe("branch tree model", () => {
     expect(branches[0]?.isFavorite).toBe(false);
   });
 
+  it("pins the default branch, then ungrouped branches, then folders", () => {
+    const entries = normalizeBranchEntries([
+      branch("feature/inline-hold", "refs/heads/feature/inline-hold"),
+      branch("fix/toc-handle", "refs/heads/fix/toc-handle"),
+      branch("feat/simplify-toc", "refs/heads/feat/simplify-toc"),
+      branch("main-bak", "refs/heads/main-bak"),
+      branch("main-bak2", "refs/heads/main-bak2"),
+      branch("main-bak3", "refs/heads/main-bak3"),
+      branch("main", "refs/heads/main", { isCurrent: true, isDefault: true }),
+    ]);
+
+    const grouped = buildBranchTreeSnapshot(entries, {
+      repoId: "repo-a",
+      grouped: true,
+    });
+    expect(grouped.roots.map((node) => node.name)).toEqual([
+      "main",
+      "main-bak",
+      "main-bak2",
+      "main-bak3",
+      "feat",
+      "feature",
+      "fix",
+    ]);
+
+    const flat = buildBranchTreeSnapshot(entries, {
+      repoId: "repo-a",
+      grouped: false,
+    });
+    expect(flat.roots.map((node) => node.name)).toEqual([
+      "main",
+      "feat/simplify-toc",
+      "feature/inline-hold",
+      "fix/toc-handle",
+      "main-bak",
+      "main-bak2",
+      "main-bak3",
+    ]);
+  });
+
+  it("keeps the tree order identical when the checked-out branch changes", () => {
+    const entriesFor = (current: string) =>
+      normalizeBranchEntries(
+        [
+          branch("main", "refs/heads/main", { isDefault: true }),
+          branch("fix/starred", "refs/heads/fix/starred"),
+          branch("loose", "refs/heads/loose"),
+          branch("work", "refs/heads/work", { isCurrent: current === "work" }),
+        ],
+        new Set(["refs/heads/fix/starred"]),
+      );
+    const order = (current: string, grouped: boolean) =>
+      buildBranchTreeSnapshot(entriesFor(current), {
+        repoId: "repo-a",
+        grouped,
+      }).roots.map((node) => node.name);
+
+    // The tree is a stable map of the repository: checking out `work` must not
+    // lift it (or its folder) up the list.
+    expect(order("main", true)).toEqual(["main", "loose", "work", "fix"]);
+    expect(order("work", true)).toEqual(order("main", true));
+    expect(order("work", false)).toEqual(order("main", false));
+  });
+
+  it("keeps a favorite folder below the ungrouped branches", () => {
+    const entries = normalizeBranchEntries(
+      [
+        branch("fix/starred", "refs/heads/fix/starred"),
+        branch("loose", "refs/heads/loose"),
+        branch("main", "refs/heads/main", { isCurrent: true, isDefault: true }),
+      ],
+      new Set(["refs/heads/fix/starred"]),
+    );
+    const snapshot = buildBranchTreeSnapshot(entries, {
+      repoId: "repo-a",
+      grouped: true,
+    });
+
+    expect(snapshot.roots.map((node) => node.name)).toEqual([
+      "main",
+      "loose",
+      "fix",
+    ]);
+  });
+
+  it("keeps folders before leaves below the root", () => {
+    const entries = normalizeBranchEntries([
+      branch("feature/x", "refs/heads/feature/x"),
+      branch("feature/sub/y", "refs/heads/feature/sub/y"),
+    ]);
+    const snapshot = buildBranchTreeSnapshot(entries, {
+      repoId: "repo-a",
+      grouped: true,
+    });
+    const feature = snapshot.roots.find((node) => node.name === "feature");
+
+    expect(feature?.children.map((node) => node.name)).toEqual(["sub", "x"]);
+  });
+
   it("keeps same-path local, remote, and tag directories separate", () => {
     const entries = [
       ...normalizeBranchEntries([
@@ -229,9 +328,10 @@ describe("branch tree selectors", () => {
       new Set(["repo:repo-a:dir:local:feature"]),
     );
 
+    // Root order is ungrouped refs first, so `main` precedes the tag folder.
     expect(visible.map((ref) => ref.fullRef)).toEqual([
-      "refs/tags/feature/login",
       "refs/heads/main",
+      "refs/tags/feature/login",
     ]);
   });
 });

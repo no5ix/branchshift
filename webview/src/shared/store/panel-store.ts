@@ -568,6 +568,13 @@ export function createGitLogStore(options: GitLogStoreOptions): GitLogStore {
         pendingDefaultBranchInitialization && !get().filter.branch;
       set({ loading: true });
       const start = Date.now();
+      // Ref-sidebar data as soon as it resolves, kept visible to the catch
+      // below. A commit-graph query that fails (for example a ref that vanished
+      // mid-flight) must not erase the branch/tag lists that were fetched
+      // successfully in the same refresh.
+      let fetchedBranches: BranchInfo[] = [];
+      let fetchedTags: TagInfo[] = [];
+      let fetchedCurrentBranch = "";
       const operation = (async () => {
         try {
           let requestedFilter = { ...get().filter };
@@ -604,6 +611,12 @@ export function createGitLogStore(options: GitLogStoreOptions): GitLogStore {
               tagsRequest,
             ]);
             if (generation !== logLoadGeneration) return;
+            // The refs are in hand before the graph is queried. Capture them now
+            // so a graph failure for a vanished filter ref cannot discard them.
+            fetchedBranches = branches ?? [];
+            fetchedTags = tags ?? [];
+            fetchedCurrentBranch =
+              fetchedBranches.find((branch) => branch.isCurrent)?.name ?? "";
             const currentRef = currentBranchRef(branches);
             if (shouldDefaultToCurrentBranch && currentRef) {
               requestedFilter = {
@@ -861,6 +874,11 @@ export function createGitLogStore(options: GitLogStoreOptions): GitLogStore {
             console.error("fetchInitialData failed:", err);
             set({
               ..._clearRepoBoundDisplay(),
+              // Clear commit-bound state only: the sidebar is the user's only
+              // way back to a working ref, so keep whatever refs did load.
+              branches: fetchedBranches,
+              tags: fetchedTags,
+              currentBranch: fetchedCurrentBranch,
               hasMore: false,
               loadError: loadErrorFrom(err),
             });

@@ -1,5 +1,6 @@
 import type { GitExecutor } from "../core/gitExecutor";
 import type { BranchInfo } from "../types";
+import { resolveDefaultBranchName } from "./defaultBranch";
 import { parseGitRef } from "./refParser";
 
 const FIELD_SEP = "\x00";
@@ -30,8 +31,23 @@ export class RefService {
       .text(["branch", "-r", `--format=${branchFormat}`])
       .catch(() => "");
 
+    const localBranches = parseBranchOutput(
+      localOutput,
+      false,
+      worktreeCheckouts,
+    );
+    // Pin target for the branch tree: resolved after the names are known, and
+    // only a name with a local branch is ever marked.
+    const defaultName = await resolveDefaultBranchName(
+      this.executor,
+      localBranches.map((branch) => branch.name),
+    );
+
     return [
-      ...parseBranchOutput(localOutput, false, worktreeCheckouts),
+      ...localBranches.map((branch) => ({
+        ...branch,
+        isDefault: branch.name === defaultName,
+      })),
       ...parseBranchOutput(remoteOutput, true, worktreeCheckouts),
     ];
   }

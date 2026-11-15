@@ -79,4 +79,70 @@ describe("RefService branch queries", () => {
       await fs.rm(base, { recursive: true, force: true });
     }
   });
+
+  it("marks the default branch from the remote symbolic HEAD", async () => {
+    const base = await fs.mkdtemp(
+      path.join(os.tmpdir(), "branchshift-default-"),
+    );
+    const repo = path.join(base, "repo");
+    const remote = path.join(base, "remote.git");
+    try {
+      await git(base, "init", "--bare", remote);
+      await git(base, "init", "-b", "main", repo);
+      await git(repo, "config", "user.name", "BranchShift Test");
+      await git(repo, "config", "user.email", "branchshift@example.com");
+      await fs.writeFile(path.join(repo, "README.md"), "initial\n");
+      await git(repo, "add", "README.md");
+      await git(repo, "commit", "-m", "initial");
+      await git(repo, "remote", "add", "origin", remote);
+      await git(repo, "push", "-u", "origin", "main");
+      await git(repo, "remote", "set-head", "origin", "-a");
+      await git(repo, "checkout", "-b", "feature");
+
+      const local = (await serviceFor(repo).getBranches()).filter(
+        (branch) => !branch.isRemote,
+      );
+
+      assert.deepStrictEqual(
+        local.filter((branch) => branch.isDefault).map((branch) => branch.name),
+        ["main"],
+      );
+      assert.strictEqual(
+        local.find((branch) => branch.name === "feature")?.isDefault,
+        false,
+      );
+    } finally {
+      await fs.rm(base, { recursive: true, force: true });
+    }
+  });
+
+  it("marks main in a repository without any remote", async () => {
+    const base = await fs.mkdtemp(
+      path.join(os.tmpdir(), "branchshift-default-bare-"),
+    );
+    const repo = path.join(base, "repo");
+    try {
+      await git(base, "init", "-b", "main", repo);
+      await git(repo, "config", "user.name", "BranchShift Test");
+      await git(repo, "config", "user.email", "branchshift@example.com");
+      await fs.writeFile(path.join(repo, "README.md"), "initial\n");
+      await git(repo, "add", "README.md");
+      await git(repo, "commit", "-m", "initial");
+      await git(repo, "branch", "feature");
+
+      const branches = await serviceFor(repo).getBranches();
+
+      assert.deepStrictEqual(
+        branches
+          .filter((branch) => branch.isDefault)
+          .map((branch) => branch.name),
+        ["main"],
+      );
+      assert.ok(
+        branches.every((branch) => !branch.isRemote || !branch.isDefault),
+      );
+    } finally {
+      await fs.rm(base, { recursive: true, force: true });
+    }
+  });
 });

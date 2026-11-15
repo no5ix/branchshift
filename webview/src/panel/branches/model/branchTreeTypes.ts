@@ -12,6 +12,8 @@ export interface BranchTreeEntry {
   scope: BranchTreeScope;
   name: string;
   isCurrent: boolean;
+  /** Repository default branch: pinned above every other ref in the tree. */
+  isDefault: boolean;
   isFavorite: boolean;
   branch?: BranchInfo;
   tag?: TagInfo;
