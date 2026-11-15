@@ -144,7 +144,12 @@ describe("runBranchAction", () => {
     const ports = createPorts();
     const currentContext: BranchActionContext = {
       ...context,
-      branch: { ...branch, name: "main", fullRef: "refs/heads/main", isCurrent: true },
+      branch: {
+        ...branch,
+        name: "main",
+        fullRef: "refs/heads/main",
+        isCurrent: true,
+      },
       ref: { type: "local", name: "main", fullRef: "refs/heads/main" },
       currentBranch: "main",
     };
@@ -152,8 +157,14 @@ describe("runBranchAction", () => {
 
     await runBranchAction("rename", currentContext, ports);
 
-    expect(ports.operations.rename).toHaveBeenCalledWith("repo-a", "main", "trunk");
-    expect(ports.ui.clearRefFilterIfViewing).toHaveBeenCalledWith(currentContext.ref);
+    expect(ports.operations.rename).toHaveBeenCalledWith(
+      "repo-a",
+      "main",
+      "trunk",
+    );
+    expect(ports.ui.clearRefFilterIfViewing).toHaveBeenCalledWith(
+      currentContext.ref,
+    );
   });
 
   it("confirms merge, rebase, and delete before invoking them", async () => {
