@@ -734,29 +734,22 @@ export class GitService {
     this.invalidateCache();
   }
 
-  /**
-   * Whether a branch needs a lease-protected push after being rebased onto
-   * another branch. The remote-tracking ref is intentionally left unchanged
-   * until the push succeeds, so --force-with-lease can detect concurrent pushes.
-   */
+  /** Determine whether the remote branch has commits absent from local HEAD. */
   async needsForcePushAfterRebase(
     branchName: string,
     remote: string,
     targetBranch: string,
   ): Promise<boolean> {
-    const upstreamRef = await this.getUpstreamRef(branchName);
-    if (!upstreamRef || upstreamRef.remote !== remote || upstreamRef.branch !== targetBranch) {
+    const upstream = await this.getUpstreamRef(branchName);
+    if (!upstream || upstream.remote !== remote || upstream.branch !== targetBranch) {
       return false;
     }
     const remoteRef = `refs/remotes/${remote}/${targetBranch}`;
-    try {
-      await this.execGit(["rev-parse", "--verify", remoteRef]);
-    } catch {
-      return false;
-    }
-    const mergeBase = await this.execGit(["merge-base", branchName, remoteRef]).catch(() => "");
-    const remoteTip = await this.execGit(["rev-parse", remoteRef]).catch(() => "");
-    return !!mergeBase && !!remoteTip && mergeBase.trim() !== remoteTip.trim();
+    const remoteTip = await this.execGit(["rev-parse", "--verify", remoteRef]).catch(() => "");
+    if (!remoteTip.trim()) return false;
+    const ancestor = await this.execGit(["merge-base", "--is-ancestor", remoteRef, branchName], 1).catch(() => "");
+    // --is-ancestor exits 1 when the remote tip is not an ancestor of HEAD.
+    return !ancestor;
   }
 
   private async getUpstreamRef(
