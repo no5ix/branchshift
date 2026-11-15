@@ -9,7 +9,9 @@ export interface BranchActionContext {
   ref: GitRefIdentity;
   branch?: BranchInfo;
   selectedBranches?: BranchInfo[];
-  /** Local and remote refs to remove together, including matched upstream/downstream refs. */
+  /** Local and remote refs to remove together, including matched upstream and
+   * downstream refs.
+   */
   deleteTargets?: BranchInfo[];
   /** Number of selected branch rows represented by a combined delete action. */
   deleteSelectionCount?: number;
