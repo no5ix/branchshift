@@ -173,7 +173,9 @@ describe("RefService branch queries", () => {
     }
   });
   it("shows local main ahead after rebasing it onto another branch", async () => {
-    const base = await fs.mkdtemp(path.join(os.tmpdir(), "branchshift-rebase-ahead-"));
+    const base = await fs.mkdtemp(
+      path.join(os.tmpdir(), "branchshift-rebase-ahead-"),
+    );
     const repo = path.join(base, "repo");
     const remote = path.join(base, "remote.git");
     try {
@@ -205,5 +207,4 @@ describe("RefService branch queries", () => {
       await fs.rm(base, { recursive: true, force: true });
     }
   });
-
 });
