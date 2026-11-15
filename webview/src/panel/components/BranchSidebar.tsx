@@ -155,11 +155,11 @@ export function BranchSidebar({
     const branchesToDelete = [...selectedLocalBranches];
     const capturedSelection = selectedRefs.map(refKey);
     const names = branchesToDelete.map((branch) => branch.name);
-    const list = names.map((name) => `• ${name}`).join("\\n");
+    const list = names.map((name) => `• ${name}`).join("\n");
     const result = (await requestFromSurface(
       "showConfirmMessage",
       {
-        message: `Delete these ${names.length} branches?\\n\\n${list}`,
+        message: `Delete these ${names.length} branches?\n\n${list}`,
         confirmLabel: `Delete ${names.length} Branches`,
       },
       { scope: "global" },
@@ -201,7 +201,7 @@ export function BranchSidebar({
       await requestFromSurface(
         "showErrorNotification",
         {
-          message: `Could not delete ${failed.length} of ${names.length} selected branches:\\n${failed.join("\\n")}`,
+          message: `Could not delete ${failed.length} of ${names.length} selected branches:\n${failed.join("\n")}`,
         },
         { scope: "global" },
       );
