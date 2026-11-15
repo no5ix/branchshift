@@ -818,7 +818,12 @@ export async function activate(context: vscode.ExtensionContext) {
     const branchName = params.branchName as string;
     const force = params.force as boolean | undefined;
     return withProgress(messageRouter, ctx.repoId, async () => {
-      await gitService.push(branchName, force ?? false);
+      const autoLeasePush =
+        force === undefined && (await gitService.requiresLeasePush(branchName));
+      await gitService.push(branchName, force ?? autoLeasePush);
+      if (autoLeasePush || force === true) {
+        await gitService.clearLeasePushMarker(branchName);
+      }
       messageRouter.broadcastEvent("gitStateChanged", {
         scope: "all",
         repoId: ctx.repoId,
@@ -843,12 +848,17 @@ export async function activate(context: vscode.ExtensionContext) {
     const remote = (params.remote as string) || "origin";
     const targetBranch = (params.targetBranch as string) || branchName;
     return withProgress(messageRouter, ctx.repoId, async () => {
+      const autoLeasePush =
+        force === undefined && (await gitService.requiresLeasePush(branchName));
       const output = await gitService.push(
         branchName,
-        force ?? false,
+        force ?? autoLeasePush,
         remote,
         targetBranch,
       );
+      if (autoLeasePush || force === true) {
+        await gitService.clearLeasePushMarker(branchName);
+      }
       messageRouter.broadcastEvent("gitStateChanged", {
         scope: "all",
         repoId: ctx.repoId,
