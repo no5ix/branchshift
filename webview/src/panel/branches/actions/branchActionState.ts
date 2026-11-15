@@ -136,7 +136,9 @@ function getLabel(id: BranchActionId, context: BranchActionContext): string {
     case "rename":
       return "Rename...";
     case "delete":
-      return "Delete";
+      return context.selectedBranches && context.selectedBranches.length > 1
+        ? `Delete ${context.selectedBranches.length} Branches`
+        : "Delete";
     case "update":
       return "Update";
     case "push":
