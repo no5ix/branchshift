@@ -161,7 +161,7 @@ export async function runBranchAction(
       const isBatch = branchesToDelete.length > 1;
       const branchNames = branchesToDelete.map((candidate) => candidate.name);
       const message = isBatch
-        ? `Delete these ${branchesToDelete.length} branches?\\n\\n${branchNames.map((name) => `• ${name}`).join("\\n")}`
+        ? `Delete these ${branchesToDelete.length} branches?\n\n${branchNames.map((name) => `• ${name}`).join("\n")}`
         : `Delete branch '${branch.name}'?`;
       const confirmed = await ui.confirm(
         message,
@@ -205,7 +205,7 @@ export async function runBranchAction(
       if (failures.length > 0 && ui.isCurrent(repoId, undefined)) {
         await ui.notifyError("Delete failed", {
           code: "BATCH_DELETE_FAILED",
-          message: failures.join("\\n"),
+          message: failures.join("\n"),
         });
       }
       return;
