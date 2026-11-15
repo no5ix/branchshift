@@ -154,10 +154,12 @@ export async function runBranchAction(
     }
     case "delete-local-and-remote": {
       if (!branch) return;
-      const branchesToDelete = (context.deleteTargets?.length
+      const deleteTargets = context.deleteTargets?.length
         ? context.deleteTargets
-        : [branch]
-      ).slice().sort((a, b) => Number(a.isRemote) - Number(b.isRemote));
+        : [branch];
+      const branchesToDelete = [...deleteTargets].sort(
+        (a, b) => Number(a.isRemote) - Number(b.isRemote),
+      );
       const localNames = branchesToDelete
         .filter((candidate) => !candidate.isRemote)
         .map((candidate) => candidate.name);
@@ -175,8 +177,9 @@ export async function runBranchAction(
       const selectionCount = context.deleteSelectionCount ?? 1;
       const countLabel =
         selectionCount > 1 ? ` ${selectionCount} Branches` : "";
+      const branchNoun = selectionCount === 1 ? "branch" : "branches";
       const sections = [
-        `Delete local and remote branches for ${selectionCount} selected branch${selectionCount === 1 ? "" : "es"}?`,
+        `Delete local and remote branches for ${selectionCount} selected ${branchNoun}?`,
         "",
         `Local branches:\n${localList}`,
         `Remote branches:\n${remoteList}`,
