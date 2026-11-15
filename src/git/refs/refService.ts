@@ -138,7 +138,12 @@ async function parseBranchOutput(
       const trackingRef = configured?.trackingRef ?? inferred?.trackingRef;
       upstream = configured?.displayName ?? inferred?.displayName ?? upstream;
       if (trackingRef) {
-        counts = await resolveAheadBehind(executor, fullRef, trackingRef, counts);
+        counts = await resolveAheadBehind(
+          executor,
+          fullRef,
+          trackingRef,
+          counts,
+        );
       }
     }
 
