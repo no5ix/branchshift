@@ -48,7 +48,9 @@ describe("BranchContextMenu", () => {
     );
 
     const menu = view.getByRole("menu") as HTMLElement;
-    const action = within(menu).getByRole("menuitem", { name: "Checkout" }) as HTMLButtonElement;
+    const action = within(menu).getByRole("menuitem", {
+      name: "Checkout",
+    }) as HTMLButtonElement;
     expect(menu.style.width).toBe("max-content");
     expect(menu.style.maxWidth).toBe("calc(100vw - 8px)");
     expect(action.style.width).toBe("100%");
