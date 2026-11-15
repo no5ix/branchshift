@@ -266,8 +266,7 @@ describe("BranchSidebar ref actions", () => {
       expect(bridge.request).toHaveBeenCalledWith(
         "showConfirmMessage",
         {
-          message:
-            "Delete these 2 branches?\n\n• feature/one\n• feature/two",
+          message: "Delete these 2 branches?\n\n• feature/one\n• feature/two",
           confirmLabel: "Delete 2 Branches",
         },
         { scope: "global" },
