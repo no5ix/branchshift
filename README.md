@@ -1,5 +1,3 @@
-
-
 # no5ix - how to build and how to install it to vsc
 
 1. build: in the project root path, `pnpm run vsce:package`
