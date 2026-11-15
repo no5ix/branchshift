@@ -73,8 +73,16 @@ async function resolveAheadBehind(
       executor.text(["rev-parse", "--verify", upstreamRef]),
     ]);
     const [ahead, behind] = await Promise.all([
-      executor.text(["rev-list", "--count", `${upstream.trim()}..${local.trim()}`]),
-      executor.text(["rev-list", "--count", `${local.trim()}..${upstream.trim()}`]),
+      executor.text([
+        "rev-list",
+        "--count",
+        `${upstream.trim()}..${local.trim()}`,
+      ]),
+      executor.text([
+        "rev-list",
+        "--count",
+        `${local.trim()}..${upstream.trim()}`,
+      ]),
     ]);
     return {
       ahead: Number.parseInt(ahead.trim(), 10) || 0,
@@ -108,15 +116,12 @@ async function parseBranchOutput(
     // been fetched/resolved (for example immediately after rebase). Compare
     // the local tip to the configured remote-tracking ref directly so ahead
     // commits are not silently hidden by missing track text.
-    const aheadBehind = isRemote
-      ? { ahead: 0, behind: 0 }
-      : parseTrack(track);
+    const aheadBehind = isRemote ? { ahead: 0, behind: 0 } : parseTrack(track);
     const upstreamRemote = fields[6]?.trim();
     const upstreamRef = fields[7]?.trim();
-    const upstreamBranchName =
-      upstreamRef?.startsWith("refs/heads/")
-        ? upstreamRef.slice("refs/heads/".length)
-        : upstreamRef;
+    const upstreamBranchName = upstreamRef?.startsWith("refs/heads/")
+      ? upstreamRef.slice("refs/heads/".length)
+      : upstreamRef;
     const upstreamTrackingRef =
       upstreamRemote && upstreamBranchName
         ? `refs/remotes/${upstreamRemote}/${upstreamBranchName}`
