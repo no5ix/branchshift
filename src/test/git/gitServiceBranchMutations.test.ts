@@ -62,7 +62,9 @@ describe("GitService branch mutations", () => {
     }
   });
   it("rebases onto an updated base and pushes the topic branch without pulling", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "branchshift-rebase-push-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "branchshift-rebase-push-"),
+    );
     const remote = path.join(root, "remote.git");
     const repo = path.join(root, "repo");
     try {
@@ -104,7 +106,7 @@ describe("GitService branch mutations", () => {
 
       const localTip = await git(repo, "rev-parse", "topic");
       const remoteTip = await git(repo, "ls-remote", "origin", "refs/heads/topic")
-        .then((value) => value.split("\t")[0]);
+        .then((value) => value.split("\\t")[0]);
       assert.strictEqual(localTip, remoteTip);
       assert.strictEqual(await service.requiresLeasePush("topic"), false);
     } finally {
