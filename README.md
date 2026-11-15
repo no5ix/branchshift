@@ -2,11 +2,17 @@
 
 1. build: in the project root path, `pnpm run vsce:package`
 2. the branchshift-0.6.4.vsix would be in the project root folder
-3. install: open VS Code:
-      1. Press `Cmd + Shift + P`.
-      2. Select Extensions: Install from VSIX...
-      3. Select branchshift-0.6.4.vsix.
-      4. Reload VS Code.
+3. install approach 1:
+      1. open vscode
+      2. open the vscode extension section
+      3. drag the branchshift-0.6.4.vsix.
+      4. Restart VS Code.
+4. install approach 1: 
+      1. open VS Code
+      2. Press `Cmd + Shift + P`.
+      3. Select Extensions: Install from VSIX...
+      4. Select branchshift-0.6.4.vsix.
+      5. Restart VS Code.
 
 
 <a name="readme-top"></a>
