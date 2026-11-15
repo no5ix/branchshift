@@ -1267,7 +1267,9 @@ export class GitService {
   async pushCurrentBranch(force = false): Promise<void> {
     const branch = await this.getCurrentBranch();
     if (branch) {
-      await this.push(branch, force);
+      const useLease = force || (await this.requiresLeasePush(branch));
+      await this.push(branch, useLease);
+      if (useLease) await this.clearLeasePushMarker(branch);
     }
   }
 
