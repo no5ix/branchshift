@@ -293,10 +293,36 @@ export function BranchTree({ onTogglePanel }: BranchTreeProps = {}) {
       if (entry.scope === "tag") {
         selectRef(entry.ref, "single", visibleRefs);
       }
+      const clickedRefIsSelected = selectedRefs.some(
+        (ref) => refIdentityKey(ref) === refIdentityKey(entry.ref),
+      );
+      const selectedLocalBranches =
+        entry.branch &&
+        clickedRefIsSelected &&
+        selectedRefs.length > 1
+          ? selectedRefs
+              .filter((ref) => ref.type === "local")
+              .map((ref) =>
+                branches.find(
+                  (candidate) =>
+                    !candidate.isRemote &&
+                    candidate.fullRef === ref.fullRef &&
+                    !candidate.isCurrent &&
+                    candidate.name !== currentBranch,
+                ),
+              )
+              .filter(
+                (candidate): candidate is NonNullable<typeof candidate> =>
+                  candidate !== undefined,
+              )
+          : [];
       const context: BranchActionContext = {
         repoId: activeRepoId,
         ref: entry.ref,
         ...(entry.branch ? { branch: entry.branch } : {}),
+        ...(selectedLocalBranches.length > 1
+          ? { selectedBranches: selectedLocalBranches }
+          : {}),
         ...(entry.tag ? { tag: entry.tag } : {}),
         currentBranch,
       };
@@ -306,7 +332,9 @@ export function BranchTree({ onTogglePanel }: BranchTreeProps = {}) {
     },
     [
       activeRepoId,
+      branches,
       currentBranch,
+      selectedRefs,
       overlayController.openBranchMenu,
       overlayController.openTagMenu,
       selectRef,
