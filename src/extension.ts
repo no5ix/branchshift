@@ -850,12 +850,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const targetBranch = (params.targetBranch as string) || branchName;
     return withProgress(messageRouter, ctx.repoId, async () => {
       const forceAfterRebase =
-        force ??
-        (await gitService.needsForcePushAfterRebase(
-          branchName,
-          remote,
-          targetBranch,
-        ));
+        force ?? (await gitService.consumeLeasePushMarker(branchName));
       const output = await gitService.push(
         branchName,
         forceAfterRebase,
