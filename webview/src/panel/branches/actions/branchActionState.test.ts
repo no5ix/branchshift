@@ -220,10 +220,18 @@ describe("branch action availability", () => {
     };
 
     expect(
-      resolveDeleteTargets([localBranch], [localBranch, remoteBranch], "main"),
+      resolveDeleteTargets(
+        [localBranch],
+        [localBranch, remoteBranch],
+        "main",
+      ),
     ).toEqual([localBranch, remoteBranch]);
     expect(
-      resolveDeleteTargets([remoteBranch], [localBranch, remoteBranch], "main"),
+      resolveDeleteTargets(
+        [remoteBranch],
+        [localBranch, remoteBranch],
+        "main",
+      ),
     ).toEqual([remoteBranch, localBranch]);
     expect(
       resolveDeleteTargets(
@@ -251,9 +259,9 @@ describe("branch action availability", () => {
       upstream: undefined,
     };
 
-    expect(resolveDeleteTargets([current], [current, remoteMain], "main")).toEqual([
-      remoteMain,
-    ]);
+    expect(
+      resolveDeleteTargets([current], [current, remoteMain], "main"),
+    ).toEqual([remoteMain]);
   });
 
   it("offers only favorite and compare actions for a tag", () => {
