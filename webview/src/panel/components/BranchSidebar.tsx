@@ -50,9 +50,11 @@ export function BranchSidebar({
     selectedBranch?.lastCommitHash ?? selectedTag?.targetCommitHash;
   const selectedLocalBranches = selectedRefs
     .filter((ref) => ref.type === "local")
-    .map((ref) => branches.find(
-      (branch) => !branch.isRemote && branch.fullRef === ref.fullRef,
-    ))
+    .map((ref) =>
+      branches.find(
+        (branch) => !branch.isRemote && branch.fullRef === ref.fullRef,
+      ),
+    )
     .filter(
       (branch): branch is NonNullable<typeof branch> =>
         branch !== undefined &&
@@ -63,6 +65,10 @@ export function BranchSidebar({
   latestSelectedRef.current = selectedRef;
   const latestSelectedRefs = useRef(selectedRefs);
   latestSelectedRefs.current = selectedRefs;
+  const latestCurrentBranch = useRef(currentBranch);
+  latestCurrentBranch.current = currentBranch;
+  const latestBranches = useRef(branches);
+  latestBranches.current = branches;
   const isActionCurrent = useCallback(
     (repoId: string, ref?: GitRefIdentity) => {
       if (actionRepoId() !== repoId) return false;
@@ -162,15 +168,27 @@ export function BranchSidebar({
     if (
       result?.confirmed !== true ||
       actionRepoId() !== repoId ||
-      latestSelectedRefs.current.map(refKey).join("\\0") !==
-        capturedSelection.join("\\0")
+      latestCurrentBranch.current !== currentBranch ||
+      JSON.stringify(latestSelectedRefs.current.map(refKey)) !==
+        JSON.stringify(capturedSelection)
     ) {
       return;
     }
 
     const failed: string[] = [];
     for (const branch of branchesToDelete) {
-      if (actionRepoId() !== repoId) return;
+      if (
+        actionRepoId() !== repoId ||
+        latestCurrentBranch.current === branch.name ||
+        !latestBranches.current.some(
+          (candidate) =>
+            !candidate.isRemote &&
+            candidate.fullRef === branch.fullRef &&
+            !candidate.isCurrent,
+        )
+      ) {
+        continue;
+      }
       try {
         await operations.delete(repoId, branch, false);
       } catch (error) {
@@ -194,6 +212,7 @@ export function BranchSidebar({
     requestFromSurface,
     selectedLocalBranches,
     selectedRefs,
+    currentBranch,
   ]);
 
   const handleFetch = useCallback(async () => {
