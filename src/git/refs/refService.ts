@@ -33,11 +33,19 @@ export class RefService {
       .text(["branch", "-r", `--format=${branchFormat}`])
       .catch(() => "");
 
+    const remoteNames = new Set(
+      remoteOutput
+        .trim()
+        .split("\n")
+        .map((line) => line.split(FIELD_SEP)[0]?.trim() ?? "")
+        .filter(Boolean),
+    );
     const localBranches = await parseBranchOutput(
       localOutput,
       false,
       worktreeCheckouts,
       this.executor,
+      remoteNames,
     );
     // Pin target for the branch tree: resolved after the names are known, and
     // only a name with a local branch is ever marked.
@@ -98,6 +106,7 @@ async function parseBranchOutput(
   isRemote: boolean,
   worktreeCheckouts: ReadonlyMap<string, string>,
   executor: GitExecutor,
+  availableRemoteNames: ReadonlySet<string> = new Set(),
 ): Promise<BranchInfo[]> {
   const branches: BranchInfo[] = [];
   for (const line of output.trim().split("\n")) {
@@ -107,50 +116,91 @@ async function parseBranchOutput(
     const fullRef =
       fields[1]?.trim() ?? `refs/${isRemote ? "remotes" : "heads"}/${name}`;
     const ref = parseGitRef(fullRef, name);
-    if (ref.kind === "remote" && /^refs\/remotes\/[^/]+\/HEAD$/.test(ref.id)) {
+    if (
+      ref.kind === "remote" &&
+      ref.id.startsWith("refs/remotes/") &&
+      ref.id.endsWith("/HEAD") &&
+      ref.id.slice("refs/remotes/".length).split("/").length === 2
+    ) {
       continue;
     }
-    const track = fields[4]?.trim() ?? "";
-    const hasUpstream = Boolean(fields[3]?.trim());
-    // Git's %(upstream:track) can be empty when an upstream ref has not
-    // been fetched/resolved (for example immediately after rebase). Compare
-    // the local tip to the configured remote-tracking ref directly so ahead
-    // commits are not silently hidden by missing track text.
-    const aheadBehind = isRemote ? { ahead: 0, behind: 0 } : parseTrack(track);
-    const upstreamRemote = fields[6]?.trim();
-    const upstreamRef = fields[7]?.trim();
-    const upstreamBranchName = upstreamRef?.startsWith("refs/heads/")
-      ? upstreamRef.slice("refs/heads/".length)
-      : upstreamRef;
-    const upstreamTrackingRef =
-      upstreamRemote && upstreamBranchName
-        ? `refs/remotes/${upstreamRemote}/${upstreamBranchName}`
-        : fields[3]?.trim();
-    const counts =
-      !isRemote && hasUpstream && upstreamTrackingRef
-        ? await resolveAheadBehind(
-            executor,
-            fullRef,
-            upstreamTrackingRef,
-            aheadBehind,
-          )
-        : aheadBehind;
-    const { ahead, behind } = counts;
+
+    let counts = isRemote
+      ? { ahead: 0, behind: 0 }
+      : parseTrack(fields[4]?.trim() ?? "");
+    let upstream = !isRemote ? fields[3]?.trim() || undefined : undefined;
+
+    if (!isRemote) {
+      const configured = await resolveConfiguredUpstream(executor, name);
+      const inferred = configured
+        ? undefined
+        : inferMatchingRemoteBranch(name, availableRemoteNames);
+      const trackingRef = configured?.trackingRef ?? inferred?.trackingRef;
+      upstream = configured?.displayName ?? inferred?.displayName ?? upstream;
+      if (trackingRef) {
+        counts = await resolveAheadBehind(executor, fullRef, trackingRef, counts);
+      }
+    }
+
     branches.push({
       name: ref.shortName,
       fullRef: ref.id,
       isRemote: ref.kind === "remote",
       isCurrent: !isRemote && fields[2]?.trim() === "*",
-      upstream: !isRemote ? fields[3]?.trim() || undefined : undefined,
+      upstream,
       checkedOutWorktreePath: !isRemote
         ? worktreeCheckouts.get(ref.id)
         : undefined,
-      ahead,
-      behind,
+      ahead: counts.ahead,
+      behind: counts.behind,
       lastCommitHash: fields[5]?.trim() ?? "",
     });
   }
   return branches;
+}
+
+async function resolveConfiguredUpstream(
+  executor: GitExecutor,
+  branchName: string,
+): Promise<{ displayName: string; trackingRef: string } | null> {
+  const [remoteResult, mergeResult] = await Promise.all([
+    executor
+      .text(["config", "--get", `branch.${branchName}.remote`])
+      .catch(() => ""),
+    executor
+      .text(["config", "--get", `branch.${branchName}.merge`])
+      .catch(() => ""),
+  ]);
+  const remote = remoteResult.trim();
+  const mergeRef = mergeResult.trim();
+  if (!remote || !mergeRef || remote === ".") return null;
+
+  const branch = mergeRef.startsWith("refs/heads/")
+    ? mergeRef.slice("refs/heads/".length)
+    : mergeRef;
+  return {
+    displayName: `${remote}/${branch}`,
+    trackingRef: `refs/remotes/${remote}/${branch}`,
+  };
+}
+
+function inferMatchingRemoteBranch(
+  branchName: string,
+  remoteNames: ReadonlySet<string>,
+): { displayName: string; trackingRef: string } | null {
+  const candidates = [...remoteNames].filter(
+    (name) => name.slice(name.indexOf("/") + 1) === branchName,
+  );
+  const selected = candidates.includes(`origin/${branchName}`)
+    ? `origin/${branchName}`
+    : candidates.length === 1
+      ? candidates[0]
+      : undefined;
+  if (!selected) return null;
+  return {
+    displayName: selected,
+    trackingRef: `refs/remotes/${selected}`,
+  };
 }
 
 function parseTrack(track: string): { ahead: number; behind: number } {
