@@ -191,8 +191,6 @@ describe("CommitRow reachability styling", () => {
       { wrapper: StoreWrapper },
     );
 
-    expect(
-      getByText("origin & main, origin & feature/example"),
-    ).toBeTruthy();
+    expect(getByText("origin & main, origin & feature/example")).toBeTruthy();
   });
 });
