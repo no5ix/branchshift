@@ -50,9 +50,12 @@ describe("BranchContextMenu", () => {
     const action = within(menu).getByRole("menuitem", {
       name: "Checkout",
     }) as HTMLButtonElement;
+    expect(menu.style.display).toBe("inline-grid");
+    expect(menu.style.gridTemplateColumns).toBe("max-content");
     expect(menu.style.width).toBe("max-content");
     expect(menu.style.maxWidth).toBe("calc(100vw - 8px)");
-    expect(action.style.width).toBe("max-content");
+    expect(action.style.width).toBe("100%");
+    expect(action.style.maxWidth).toBe("100%");
     expect(action.style.display).toBe("block");
     expect(action.style.boxSizing).toBe("border-box");
   });
