@@ -176,7 +176,7 @@ export async function runBranchAction(
       const failures: string[] = [];
       for (const candidate of branchesToDelete) {
         const candidateRef: GitRefIdentity = {
-          type: "local",
+          type: candidate.isRemote ? "remote" : "local",
           name: candidate.name,
           fullRef: candidate.fullRef,
         };
