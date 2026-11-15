@@ -17,6 +17,8 @@ export class RefService {
       "%(upstream:short)",
       "%(upstream:track,nobracket)",
       "%(objectname)",
+      "%(upstream:remotename)",
+      "%(upstream:remoteref)",
     ].join(REF_FMT_FIELD_SEP);
     const worktreeCheckouts = parseWorktreeCheckouts(
       await this.executor
@@ -53,6 +55,30 @@ export class RefService {
   }
 }
 
+async function resolveAheadBehind(
+  executor: { text(args: string[]): Promise<string> },
+  localRef: string,
+  upstreamRef: string,
+  fallback: { ahead: number; behind: number },
+): Promise<{ ahead: number; behind: number }> {
+  try {
+    const [local, upstream] = await Promise.all([
+      executor.text(["rev-parse", "--verify", localRef]),
+      executor.text(["rev-parse", "--verify", upstreamRef]),
+    ]);
+    const [ahead, behind] = await Promise.all([
+      executor.text(["rev-list", "--count", `${upstream.trim()}..${local.trim()}`]),
+      executor.text(["rev-list", "--count", `${local.trim()}..${upstream.trim()}`]),
+    ]);
+    return {
+      ahead: Number.parseInt(ahead.trim(), 10) || 0,
+      behind: Number.parseInt(behind.trim(), 10) || 0,
+    };
+  } catch {
+    return fallback;
+  }
+}
+
 function parseBranchOutput(
   output: string,
   isRemote: boolean,
@@ -70,9 +96,24 @@ function parseBranchOutput(
       continue;
     }
     const track = fields[4]?.trim() ?? "";
-    const { ahead, behind } = isRemote
+    const hasUpstream = Boolean(fields[3]?.trim());
+    // Git's %(upstream:track) can be empty when an upstream ref has not
+    // been fetched/resolved (for example immediately after rebase). Compare
+    // the local tip to the configured remote-tracking ref directly so ahead
+    // commits are not silently hidden by missing track text.
+    const aheadBehind = isRemote
       ? { ahead: 0, behind: 0 }
       : parseTrack(track);
+    const upstreamRemote = fields[6]?.trim();
+    const upstreamRef = fields[7]?.trim();
+    const upstreamTrackingRef =
+      upstreamRemote && upstreamRef
+        ? `refs/remotes/${upstreamRemote}/${upstreamRef.replace(/^refs\\/heads\\//, "")}`
+        : fields[3]?.trim();
+    const counts = !isRemote && hasUpstream && upstreamTrackingRef
+      ? await resolveAheadBehind(this.executor, fullRef, upstreamTrackingRef, aheadBehind)
+      : aheadBehind;
+    const { ahead, behind } = counts;
     branches.push({
       name: ref.shortName,
       fullRef: ref.id,
