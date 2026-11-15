@@ -220,18 +220,10 @@ describe("branch action availability", () => {
     };
 
     expect(
-      resolveDeleteTargets(
-        [localBranch],
-        [localBranch, remoteBranch],
-        "main",
-      ),
+      resolveDeleteTargets([localBranch], [localBranch, remoteBranch], "main"),
     ).toEqual([localBranch, remoteBranch]);
     expect(
-      resolveDeleteTargets(
-        [remoteBranch],
-        [localBranch, remoteBranch],
-        "main",
-      ),
+      resolveDeleteTargets([remoteBranch], [localBranch, remoteBranch], "main"),
     ).toEqual([remoteBranch, localBranch]);
     expect(
       resolveDeleteTargets(
