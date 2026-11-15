@@ -164,6 +164,14 @@ export async function runBranchAction(
       const remoteNames = branchesToDelete
         .filter((candidate) => candidate.isRemote)
         .map((candidate) => candidate.name);
+      const localList =
+        localNames.length > 0
+          ? localNames.map((name) => `• ${name}`).join("\\n")
+          : "• (none found)";
+      const remoteList =
+        remoteNames.length > 0
+          ? remoteNames.map((name) => `• ${name}`).join("\\n")
+          : "• (none found)";
       const selectionCount = context.deleteSelectionCount ?? 1;
       const countLabel =
         selectionCount > 1 ? ` ${selectionCount} Branches` : "";
@@ -194,7 +202,10 @@ export async function runBranchAction(
           ui.clearRefFilterIfViewing(candidateRef);
         } catch (error) {
           const formatted = formatBranchActionError(error);
-          if (!candidate.isRemote && formatted.code === BRANCH_NOT_FULLY_MERGED) {
+          if (
+            !candidate.isRemote &&
+            formatted.code === BRANCH_NOT_FULLY_MERGED
+          ) {
             const force = await ui.confirm(
               `Branch '${candidate.name}' is not fully merged. Force delete it?`,
               "Force Delete",
@@ -221,7 +232,9 @@ export async function runBranchAction(
             const recovery = formatted.recovery
               ? `\n${formatted.recovery}`
               : "";
-            failures.push(`${candidate.name}: ${formatted.message}${recovery}`);
+            failures.push(
+              `${candidate.name}: ${formatted.message}${recovery}`,
+            );
           }
         }
       }
