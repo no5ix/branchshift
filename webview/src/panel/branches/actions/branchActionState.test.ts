@@ -141,6 +141,8 @@ describe("branch action availability", () => {
       "separator:sync",
       "update",
       "push",
+      "separator:copy",
+      "copy-branch-name",
     ]);
     expect(
       items.filter((item) => item.kind === "action").map((item) => item.label),
