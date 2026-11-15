@@ -761,7 +761,11 @@ export class GitService {
   ): Promise<{ rewrittenUpstream: boolean }> {
     const upstream = await this.getUpstreamRef(branchName);
     const before = upstream
-      ? await this.execGit(["rev-parse", "--verify", `refs/remotes/${upstream.remote}/${upstream.branch}`]).catch(() => "")
+      ? await this.execGit([
+          "rev-parse",
+          "--verify",
+          `refs/remotes/${upstream.remote}/${upstream.branch}`,
+        ]).catch(() => "")
       : "";
     await this.execGit(["rebase", onto]);
     this.invalidateCache();
@@ -772,17 +776,8 @@ export class GitService {
     if (!upstream || !before.trim()) {
       return { rewrittenUpstream: false };
     }
-    try {
-      await this.execGit([
-        "merge-base",
-        "--is-ancestor",
-        before.trim(),
-        branchName,
-      ]);
-      return { rewrittenUpstream: false };
-    } catch {
-      return { rewrittenUpstream: true };
-    }
+    const remoteTipIsAncestor = await this.isAncestor(before.trim(), branchName);
+    return { rewrittenUpstream: !remoteTipIsAncestor };
   }
 
   private async getUpstreamRef(
@@ -797,6 +792,17 @@ export class GitService {
     if (!remote || !remoteRef?.startsWith("refs/heads/")) return null;
     return { remote, branch: remoteRef.slice("refs/heads/".length) };
   }
+
+
+  private async isAncestor(ancestor: string, descendant: string): Promise<boolean> {
+    try {
+      await this.execGit(["merge-base", "--is-ancestor", ancestor, descendant]);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
 
   async rebaseAction(action: "continue" | "abort" | "skip"): Promise<void> {
     if (action === "continue") {
