@@ -138,7 +138,10 @@ describe("CommitRow reachability styling", () => {
         { type: "branch" as const, name: "main" },
         { type: "remote-branch" as const, name: "origin/main" },
         { type: "branch" as const, name: "fix/picker-card-hover-highlight" },
-        { type: "remote-branch" as const, name: "origin/fix/picker-card-hover-highlight" },
+        {
+          type: "remote-branch" as const,
+          name: "origin/fix/picker-card-hover-highlight",
+        },
       ],
     };
 
@@ -158,5 +161,4 @@ describe("CommitRow reachability styling", () => {
       getByText("origin & main  origin & fix/picker-card-hover-highlight"),
     ).toBeTruthy();
   });
-
 });
