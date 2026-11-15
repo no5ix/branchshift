@@ -297,9 +297,7 @@ export function BranchTree({ onTogglePanel }: BranchTreeProps = {}) {
         (ref) => refIdentityKey(ref) === refIdentityKey(entry.ref),
       );
       const selectedLocalBranches =
-        entry.branch &&
-        clickedRefIsSelected &&
-        selectedRefs.length > 1
+        entry.branch && clickedRefIsSelected && selectedRefs.length > 1
           ? selectedRefs
               .filter((ref) => ref.type === "local")
               .map((ref) =>
