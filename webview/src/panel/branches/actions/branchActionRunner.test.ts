@@ -246,7 +246,7 @@ describe("runBranchAction", () => {
     await runBranchAction("delete", remoteContext, ports);
 
     expect(ports.ui.confirm).toHaveBeenCalledWith(
-      "Delete these 2 branches?\\n\\n• origin/feature\\n• origin/feature/two",
+      "Delete these 2 branches?\n\n• origin/feature\n• origin/feature/two",
       "Delete 2 Branches",
     );
     expect(ports.operations.delete).toHaveBeenNthCalledWith(
