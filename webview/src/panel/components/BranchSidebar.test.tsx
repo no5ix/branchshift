@@ -267,7 +267,7 @@ describe("BranchSidebar ref actions", () => {
         "showConfirmMessage",
         {
           message:
-            "Delete these 2 branches?\\n\\n• feature/one\\n• feature/two",
+            "Delete these 2 branches?\n\n• feature/one\n• feature/two",
           confirmLabel: "Delete 2 Branches",
         },
         { scope: "global" },
