@@ -154,13 +154,13 @@ describe("RefService branch queries", () => {
       await git(base, "init", "-b", "main", repo);
       await git(repo, "config", "user.name", "BranchShift Test");
       await git(repo, "config", "user.email", "branchshift@example.com");
-      await fs.writeFile(path.join(repo, "README.md"), "initial\\n");
+      await fs.writeFile(path.join(repo, "README.md"), "initial\n");
       await git(repo, "add", "README.md");
       await git(repo, "commit", "-m", "initial");
       await git(repo, "remote", "add", "origin", remote);
       await git(repo, "push", "-u", "origin", "main");
 
-      await fs.writeFile(path.join(repo, "README.md"), "local ahead\\n");
+      await fs.writeFile(path.join(repo, "README.md"), "local ahead\n");
       await git(repo, "commit", "-am", "local ahead");
 
       const main = (await serviceFor(repo).getBranches()).find(
@@ -172,5 +172,4 @@ describe("RefService branch queries", () => {
       await fs.rm(base, { recursive: true, force: true });
     }
   });
-
 });
