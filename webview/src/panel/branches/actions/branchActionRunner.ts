@@ -180,9 +180,7 @@ export async function runBranchAction(
           name: candidate.name,
           fullRef: candidate.fullRef,
         };
-        if (
-          !ui.isCurrent(repoId, candidateRef, context.currentBranch)
-        ) {
+        if (!ui.isCurrent(repoId, candidateRef, context.currentBranch)) {
           continue;
         }
         try {
@@ -217,9 +215,7 @@ export async function runBranchAction(
             const recovery = formatted.recovery
               ? `\n${formatted.recovery}`
               : "";
-            failures.push(
-              `${candidate.name}: ${formatted.message}${recovery}`,
-            );
+            failures.push(`${candidate.name}: ${formatted.message}${recovery}`);
           }
         }
       }
