@@ -3,6 +3,7 @@ import type { BranchInfo, TagInfo } from "../../../shared/types/git";
 import {
   getBranchActionAvailability,
   getBranchActionItems,
+  resolveDeleteTargets,
 } from "./branchActionState";
 import type { BranchActionContext } from "./branchActionTypes";
 
@@ -207,6 +208,52 @@ describe("branch action availability", () => {
       label: "Delete Local and Remote 11 Branches",
       enabled: true,
     });
+  });
+
+  it("resolves both sides of a local and remote branch pair without duplicates", () => {
+    const remoteBranch: BranchInfo = {
+      ...localBranch,
+      name: "origin/feature",
+      fullRef: "refs/remotes/origin/feature",
+      isRemote: true,
+      upstream: undefined,
+    };
+
+    expect(
+      resolveDeleteTargets([localBranch], [localBranch, remoteBranch], "main"),
+    ).toEqual([localBranch, remoteBranch]);
+    expect(
+      resolveDeleteTargets([remoteBranch], [localBranch, remoteBranch], "main"),
+    ).toEqual([remoteBranch, localBranch]);
+    expect(
+      resolveDeleteTargets(
+        [localBranch, remoteBranch],
+        [localBranch, remoteBranch],
+        "main",
+      ),
+    ).toEqual([localBranch, remoteBranch]);
+  });
+
+  it("never includes the checked-out local branch in combined deletion", () => {
+    const current: BranchInfo = {
+      ...localBranch,
+      name: "main",
+      fullRef: "refs/heads/main",
+      isCurrent: true,
+      upstream: "origin/main",
+    };
+    const remoteMain: BranchInfo = {
+      ...current,
+      name: "origin/main",
+      fullRef: "refs/remotes/origin/main",
+      isCurrent: false,
+      isRemote: true,
+      upstream: undefined,
+    };
+
+    expect(resolveDeleteTargets([current], [current, remoteMain], "main")).toEqual([
+      remoteMain,
+    ]);
   });
 
   it("offers only favorite and compare actions for a tag", () => {
