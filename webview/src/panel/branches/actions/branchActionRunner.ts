@@ -152,6 +152,87 @@ export async function runBranchAction(
       if (renamed) ui.clearRefFilterIfViewing(ref);
       return;
     }
+    case "delete-local-and-remote": {
+      if (!branch) return;
+      const branchesToDelete = (context.deleteTargets?.length
+        ? context.deleteTargets
+        : [branch]
+      ).slice().sort((a, b) => Number(a.isRemote) - Number(b.isRemote));
+      const localNames = branchesToDelete
+        .filter((candidate) => !candidate.isRemote)
+        .map((candidate) => candidate.name);
+      const remoteNames = branchesToDelete
+        .filter((candidate) => candidate.isRemote)
+        .map((candidate) => candidate.name);
+      const selectionCount = context.deleteSelectionCount ?? 1;
+      const countLabel =
+        selectionCount > 1 ? ` ${selectionCount} Branches` : "";
+      const sections = [
+        `Delete local and remote branches for ${selectionCount} selected branch${selectionCount === 1 ? "" : "es"}?`,
+        "",
+        `Local branches:\n${localNames.length > 0 ? localNames.map((name) => `• ${name}`).join("\n") : "• (none found)"}`,
+        `Remote branches:\n${remoteNames.length > 0 ? remoteNames.map((name) => `• ${name}`).join("\n") : "• (none found)"}`,
+      ];
+      const confirmed = await ui.confirm(
+        sections.join("\n\n"),
+        `Delete Local and Remote${countLabel}`,
+      );
+      if (!confirmed || !isActionCurrent(context, ui)) return;
+
+      const failures: string[] = [];
+      for (const candidate of branchesToDelete) {
+        const candidateRef: GitRefIdentity = {
+          type: candidate.isRemote ? "remote" : "local",
+          name: candidate.name,
+          fullRef: candidate.fullRef,
+        };
+        if (!ui.isCurrent(repoId, candidateRef, context.currentBranch)) {
+          continue;
+        }
+        try {
+          await operations.delete(repoId, candidate, false);
+          ui.clearRefFilterIfViewing(candidateRef);
+        } catch (error) {
+          const formatted = formatBranchActionError(error);
+          if (!candidate.isRemote && formatted.code === BRANCH_NOT_FULLY_MERGED) {
+            const force = await ui.confirm(
+              `Branch '${candidate.name}' is not fully merged. Force delete it?`,
+              "Force Delete",
+            );
+            if (
+              !force ||
+              !ui.isCurrent(repoId, candidateRef, context.currentBranch)
+            ) {
+              continue;
+            }
+            try {
+              await operations.delete(repoId, candidate, true);
+              ui.clearRefFilterIfViewing(candidateRef);
+            } catch (forceError) {
+              const forceFormatted = formatBranchActionError(forceError);
+              const recovery = forceFormatted.recovery
+                ? `\n${forceFormatted.recovery}`
+                : "";
+              failures.push(
+                `${candidate.name}: ${forceFormatted.message}${recovery}`,
+              );
+            }
+          } else {
+            const recovery = formatted.recovery
+              ? `\n${formatted.recovery}`
+              : "";
+            failures.push(`${candidate.name}: ${formatted.message}${recovery}`);
+          }
+        }
+      }
+      if (failures.length > 0 && ui.isCurrent(repoId, undefined)) {
+        await ui.notifyError("Delete Local and Remote failed", {
+          code: "BATCH_DELETE_FAILED",
+          message: failures.join("\n"),
+        });
+      }
+      return;
+    }
     case "delete": {
       if (!branch) return;
       const branchesToDelete =
