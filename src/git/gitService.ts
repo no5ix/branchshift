@@ -730,8 +730,75 @@ export class GitService {
   }
 
   async rebase(onto: string): Promise<void> {
+    // Preserve the pre-rebase upstream SHA. Rebase rewrites local commits, but
+    // must not move the remote-tracking ref: --force-with-lease uses it to
+    // detect concurrent pushes.
+    const branchName = await this.getCurrentBranch();
+    const upstream = branchName ? await this.getBranchUpstream(branchName) : null;
+    const upstreamSha = upstream
+      ? await this.execGit(["rev-parse", "--verify", upstream.remoteRef]).catch(() => "")
+      : "";
+
     await this.execGit(["rebase", onto]);
+
+    if (branchName && upstream && upstreamSha.trim()) {
+      const oldUpstreamIsAncestor = await this.isAncestor(
+        upstreamSha.trim(),
+        branchName,
+      );
+      if (!oldUpstreamIsAncestor) {
+        await this.markBranchForLeasePush(branchName);
+      }
+    }
     this.invalidateCache();
+  }
+
+  private async getBranchUpstream(
+    branchName: string,
+  ): Promise<{ remote: string; branch: string; remoteRef: string } | null> {
+    const output = await this.execGit([
+      "for-each-ref",
+      "--format=%(upstream:remotename)%00%(upstream:remoteref)",
+      `refs/heads/${branchName}`,
+    ]).catch(() => "");
+    const [remote, remoteRef] = output.trim().split(FIELD_SEP);
+    if (!remote || !remoteRef?.startsWith("refs/heads/")) return null;
+    return {
+      remote,
+      branch: remoteRef.slice("refs/heads/".length),
+      remoteRef: `refs/remotes/${remote}/${remoteRef.slice("refs/heads/".length)}`,
+    };
+  }
+
+  async markBranchForLeasePush(branchName: string): Promise<void> {
+    await this.execGit([
+      "config",
+      `branch.${branchName}.branchshift-force-with-lease`,
+      "true",
+    ]);
+  }
+
+  async requiresLeasePush(branchName: string): Promise<boolean> {
+    const key = `branch.${branchName}.branchshift-force-with-lease`;
+    const value = await this.execGit(["config", "--bool", "--get", key]).catch(() => "");
+    return value.trim() === "true";
+  }
+
+  async clearLeasePushMarker(branchName: string): Promise<void> {
+    await this.execGit([
+      "config",
+      "--unset",
+      `branch.${branchName}.branchshift-force-with-lease`,
+    ]).catch(() => "");
+  }
+
+  private async isAncestor(ancestor: string, descendant: string): Promise<boolean> {
+    try {
+      await this.execGit(["merge-base", "--is-ancestor", ancestor, descendant]);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   async rebaseAction(action: "continue" | "abort" | "skip"): Promise<void> {
@@ -771,7 +838,19 @@ export class GitService {
     targetBranch?: string,
   ): Promise<string> {
     const args = ["push"];
-    if (force) args.push("--force-with-lease");
+    if (force) {
+      const target = targetBranch || branchName;
+      const expected = await this.execGit([
+        "rev-parse",
+        "--verify",
+        `refs/remotes/${remote}/${target}`,
+      ]).catch(() => "");
+      if (expected.trim()) {
+        args.push(`--force-with-lease=refs/heads/${target}:${expected.trim()}`);
+      } else {
+        args.push("--force-with-lease");
+      }
+    }
     args.push(remote, `${branchName}:${targetBranch || branchName}`);
     const output = await this.execGit(args);
     this.invalidateCache();
@@ -1212,7 +1291,9 @@ export class GitService {
   async pushCurrentBranch(force = false): Promise<void> {
     const branch = await this.getCurrentBranch();
     if (branch) {
-      await this.push(branch, force);
+      const useLease = force || (await this.requiresLeasePush(branch));
+      await this.push(branch, useLease);
+      if (useLease) await this.clearLeasePushMarker(branch);
     }
   }
 
