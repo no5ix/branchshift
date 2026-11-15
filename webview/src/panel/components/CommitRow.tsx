@@ -39,11 +39,16 @@ function buildRefDisplayItems(refs: RefInfo[]): Array<{
 }> {
   const hasHead = refs.some((ref) => ref.type === "HEAD");
   const branchRef = refs.find((ref) => ref.type === "branch");
-  const result: Array<{ key: string; type: RefInfo["type"]; label: string }> = [];
+  const result: Array<{ key: string; type: RefInfo["type"]; label: string }> =
+    [];
 
-  const localBranches = refs.filter((ref) => ref.type === "branch").map((ref) => ref.name);
+  const localBranches = refs
+    .filter((ref) => ref.type === "branch")
+    .map((ref) => ref.name);
   const remoteBranches = refs
-    .filter((ref) => ref.type === "remote-branch" && !ref.name.endsWith("/HEAD"))
+    .filter(
+      (ref) => ref.type === "remote-branch" && !ref.name.endsWith("/HEAD"),
+    )
     .map((ref) => ref.name);
   const tags = refs.filter((ref) => ref.type === "tag").map((ref) => ref.name);
 
@@ -84,7 +89,11 @@ function buildRefDisplayItems(refs: RefInfo[]): Array<{
       result.push({ key: `remote:${name}`, type: "remote-branch", label: "" });
       result.push({ key: `branch:${name}`, type: "branch", label: name });
     } else if (name.includes("/")) {
-      result.push({ key: `remote:${name}`, type: "remote-branch", label: name });
+      result.push({
+        key: `remote:${name}`,
+        type: "remote-branch",
+        label: name,
+      });
     } else {
       result.push({ key: `branch:${name}`, type: "branch", label: name });
     }
@@ -245,7 +254,7 @@ export function CommitRow({
               text={refItems
                 .filter((item) => item.type !== "HEAD")
                 .map((item) => item.label)
-                .join("  ")}
+                .join(", ")}
             >
               <span
                 style={{
@@ -257,7 +266,7 @@ export function CommitRow({
                 {refItems
                   .filter((item) => item.type !== "HEAD")
                   .map((item) => item.label)
-                  .join("  ")}
+                  .join(", ")}
               </span>
             </Tooltip>
           </span>
