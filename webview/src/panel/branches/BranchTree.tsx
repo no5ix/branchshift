@@ -379,6 +379,10 @@ export function BranchTree({ onTogglePanel }: BranchTreeProps = {}) {
     ],
   );
 
+  const contextMenuRefKey = isMenuOverlay(overlay)
+    ? refIdentityKey(overlay.context.ref)
+    : null;
+
   const menu = useMemo<BranchTreeMenuView | null>(() => {
     if (!isMenuOverlay(overlay)) return null;
     return {
@@ -504,6 +508,7 @@ export function BranchTree({ onTogglePanel }: BranchTreeProps = {}) {
         collapsedIds={treeState.effectiveCollapsedIds}
         selectedRefKeys={selectedRefKeys}
         filteredRef={filter.branch}
+        contextMenuRefKey={contextMenuRefKey}
         searchQuery={treeState.searchQuery}
         showTags={showTags}
         showEmptyState={
