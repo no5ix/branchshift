@@ -26,6 +26,49 @@ function serviceFor(repo: string): GitService {
 }
 
 describe("GitService branch mutations", () => {
+  it("deletes a remote branch and prunes its local remote-tracking ref", async () => {
+    const repo = await fs.mkdtemp(
+      path.join(os.tmpdir(), "branchshift-delete-remote-"),
+    );
+    const remote = path.join(repo, "remote.git");
+    const worktree = path.join(repo, "worktree");
+    try {
+      await fs.mkdir(worktree);
+      await git(repo, "init", "--bare", remote);
+      await git(worktree, "init", "-b", "main");
+      await git(worktree, "config", "user.name", "BranchShift Test");
+      await git(worktree, "config", "user.email", "branchshift@example.com");
+      await fs.writeFile(path.join(worktree, "README.md"), "initial\\n");
+      await git(worktree, "add", "README.md");
+      await git(worktree, "commit", "-m", "initial");
+      await git(worktree, "remote", "add", "origin", remote);
+      await git(worktree, "push", "-u", "origin", "main");
+      await git(worktree, "checkout", "-b", "topic");
+      await fs.writeFile(path.join(worktree, "topic.txt"), "topic\\n");
+      await git(worktree, "add", "topic.txt");
+      await git(worktree, "commit", "-m", "topic");
+      await git(worktree, "push", "-u", "origin", "topic");
+      await git(worktree, "checkout", "main");
+
+      assert.strictEqual(
+        await git(worktree, "rev-parse", "--verify", "refs/remotes/origin/topic"),
+        await git(worktree, "rev-parse", "--verify", "refs/heads/topic"),
+      );
+
+      await serviceFor(worktree).deleteRemoteBranch("origin/topic");
+
+      assert.strictEqual(
+        await git(worktree, "ls-remote", "--heads", "origin", "refs/heads/topic"),
+        "",
+      );
+      await assert.rejects(
+        git(worktree, "rev-parse", "--verify", "refs/remotes/origin/topic"),
+      );
+    } finally {
+      await fs.rm(repo, { recursive: true, force: true });
+    }
+  });
+
   it("reports an unmerged branch as a typed safe-delete rejection", async () => {
     const repo = await fs.mkdtemp(
       path.join(os.tmpdir(), "branchshift-delete-"),
