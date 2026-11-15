@@ -830,7 +830,13 @@ export class GitService {
     rebaseOnto: string,
   ): Promise<void> {
     await this.execGit(["checkout", branchToCheckout]);
-    await this.execGit(["rebase", rebaseOnto]);
+    const result = await this.rebaseBranchAndDetectRewrite(
+      rebaseOnto,
+      branchToCheckout,
+    );
+    if (result.rewrittenUpstream) {
+      await this.markBranchForLeasePush(branchToCheckout);
+    }
     this.invalidateCache();
   }
 
