@@ -50,5 +50,4 @@ describe("BranchContextMenu", () => {
 
     expect(`${ref.type}:${ref.fullRef}`).toBe("local:refs/heads/main");
   });
-
 });
