@@ -300,9 +300,7 @@ export function BranchTree({ onTogglePanel }: BranchTreeProps = {}) {
         (ref) => refIdentityKey(ref) === refIdentityKey(entry.ref),
       );
       const selectedBranchRows =
-        entry.branch &&
-        clickedRefIsSelected &&
-        selectedRefs.length > 1
+        entry.branch && clickedRefIsSelected && selectedRefs.length > 1
           ? selectedRefs
               .filter((ref) => ref.type === "local" || ref.type === "remote")
               .map((ref) =>
@@ -344,9 +342,7 @@ export function BranchTree({ onTogglePanel }: BranchTreeProps = {}) {
         repoId: activeRepoId,
         ref: entry.ref,
         ...(entry.branch ? { branch: entry.branch } : {}),
-        ...(selectedBranches.length > 1
-          ? { selectedBranches }
-          : {}),
+        ...(selectedBranches.length > 1 ? { selectedBranches } : {}),
         ...(deleteTargets.length > 0 ? { deleteTargets } : {}),
         ...(deleteSelectionCount > 1 ? { deleteSelectionCount } : {}),
         ...(entry.tag ? { tag: entry.tag } : {}),
