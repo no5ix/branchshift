@@ -165,8 +165,8 @@ export function BranchContextMenu({
                     opacity: item.enabled ? 1 : 0.5,
                   }
                 : {
-                    width: "100%",
-                    maxWidth: "100%",
+                    display: "block",
+                    width: "max-content",
                     boxSizing: "border-box",
                     border: 0,
                     padding: "6px 16px",
