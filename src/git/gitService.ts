@@ -747,66 +747,18 @@ export class GitService {
     ]);
   }
 
-  async consumeLeasePushMarker(branchName: string): Promise<boolean> {
+  async requiresLeasePush(branchName: string): Promise<boolean> {
     const key = `branch.${branchName}.branchshift-force-with-lease`;
     const value = await this.execGit(["config", "--bool", "--get", key]).catch(() => "");
-    if (value.trim() !== "true") return false;
-    await this.execGit(["config", "--unset", key]).catch(() => "");
-    return true;
+    return value.trim() === "true";
   }
 
-  async rebaseBranchAndDetectRewrite(
-    onto: string,
-    branchName: string,
-  ): Promise<{ rewrittenUpstream: boolean }> {
-    const upstream = await this.getUpstreamRef(branchName);
-    const upstreamRef = upstream
-      ? `refs/remotes/${upstream.remote}/${upstream.branch}`
-      : "";
-    const before = upstreamRef
-      ? await this.execGit(["rev-parse", "--verify", upstreamRef]).catch(() => "")
-      : "";
-
-    await this.execGit(["rebase", onto]);
-    this.invalidateCache();
-
-    if (!upstream || !before.trim()) return { rewrittenUpstream: false };
-
-    // Requiring the previous remote tip to remain an ancestor is the
-    // non-fast-forward test. The remote-tracking ref remains unchanged so
-    // the subsequent lease-protected push detects concurrent remote updates.
-    return {
-      rewrittenUpstream: !(await this.isAncestor(before.trim(), branchName)),
-    };
-  }
-
-  private async getUpstreamRef(
-    branchName: string,
-  ): Promise<{ remote: string; branch: string } | null> {
-    const output = await this.execGit([
-      "for-each-ref",
-      "--format=%(upstream:remotename)%00%(upstream:remoteref)",
-      `refs/heads/${branchName}`,
-    ]).catch(() => "");
-    const [remote, remoteRef] = output.trim().split(FIELD_SEP);
-    if (!remote || !remoteRef?.startsWith("refs/heads/")) return null;
-    return { remote, branch: remoteRef.slice("refs/heads/".length) };
-  }
-
-  async markBranchForLeasePush(branchName: string): Promise<void> {
+  async clearLeasePushMarker(branchName: string): Promise<void> {
     await this.execGit([
       "config",
+      "--unset",
       `branch.${branchName}.branchshift-force-with-lease`,
-      "true",
-    ]);
-  }
-
-  async consumeLeasePushMarker(branchName: string): Promise<boolean> {
-    const key = `branch.${branchName}.branchshift-force-with-lease`;
-    const value = await this.execGit(["config", "--bool", "--get", key]).catch(() => "");
-    if (value.trim() !== "true") return false;
-    await this.execGit(["config", "--unset", key]).catch(() => "");
-    return true;
+    ]).catch(() => "");
   }
 
   private async isAncestor(ancestor: string, descendant: string): Promise<boolean> {
