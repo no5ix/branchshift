@@ -38,13 +38,13 @@ describe("GitService branch mutations", () => {
       await git(worktree, "init", "-b", "main");
       await git(worktree, "config", "user.name", "BranchShift Test");
       await git(worktree, "config", "user.email", "branchshift@example.com");
-      await fs.writeFile(path.join(worktree, "README.md"), "initial\\n");
+      await fs.writeFile(path.join(worktree, "README.md"), "initial\n");
       await git(worktree, "add", "README.md");
       await git(worktree, "commit", "-m", "initial");
       await git(worktree, "remote", "add", "origin", remote);
       await git(worktree, "push", "-u", "origin", "main");
       await git(worktree, "checkout", "-b", "topic");
-      await fs.writeFile(path.join(worktree, "topic.txt"), "topic\\n");
+      await fs.writeFile(path.join(worktree, "topic.txt"), "topic\n");
       await git(worktree, "add", "topic.txt");
       await git(worktree, "commit", "-m", "topic");
       await git(worktree, "push", "-u", "origin", "topic");
