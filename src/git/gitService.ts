@@ -716,6 +716,11 @@ export class GitService {
     const remote = remoteBranch.substring(0, slashIdx);
     const branch = remoteBranch.substring(slashIdx + 1);
     await this.execGit(["push", remote, "--delete", branch]);
+    await this.execGit([
+      "update-ref",
+      "-d",
+      `refs/remotes/${remote}/${branch}`,
+    ]).catch(() => undefined);
     this.invalidateCache();
   }
 
