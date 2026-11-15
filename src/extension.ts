@@ -788,7 +788,13 @@ export async function activate(context: vscode.ExtensionContext) {
     const { gitService } = ctx;
     const onto = params.onto as string;
     return withProgress(messageRouter, ctx.repoId, async () => {
-      await gitService.rebase(onto);
+      const currentBranch = await gitService.getCurrentBranch();
+      const rebaseResult = currentBranch
+        ? await gitService.rebaseBranchAndDetectRewrite(onto, currentBranch)
+        : (await gitService.rebase(onto), { rewrittenUpstream: false });
+      if (rebaseResult.rewrittenUpstream) {
+        await gitService.markBranchForLeasePush(currentBranch!);
+      }
       messageRouter.broadcastEvent("gitStateChanged", {
         scope: "all",
         repoId: ctx.repoId,
