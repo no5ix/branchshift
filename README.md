@@ -1,17 +1,17 @@
 # no5ix - how to build and how to install it to vsc
 
 1. build: in the project root path, `pnpm run vsce:package`
-2. the branchshift-0.6.4.vsix would be in the project root folder
+2. the `branchshift-0.6.4.vsix` would be in the project root folder
 3. install approach 1:
       1. open vscode
       2. open the vscode extension section
-      3. drag the branchshift-0.6.4.vsix.
+      3. drag the `branchshift-0.6.4.vsix`
       4. Restart VS Code.
 4. install approach 1: 
       1. open VS Code
       2. Press `Cmd + Shift + P`.
       3. Select Extensions: Install from VSIX...
-      4. Select branchshift-0.6.4.vsix.
+      4. Select `branchshift-0.6.4.vsix`
       5. Restart VS Code.
 
 
