@@ -55,9 +55,12 @@ describe("branch action availability", () => {
       "separator:favorite",
       "new-branch",
       "compare-current",
+      "rename",
       "separator:sync",
       "update",
       "push",
+      "separator:copy",
+      "copy-branch-name",
     ]);
     expect(
       getBranchActionItems(current).find(
@@ -114,6 +117,8 @@ describe("branch action availability", () => {
       "merge-current",
       "separator:manage",
       "delete",
+      "separator:copy",
+      "copy-branch-name",
     ]);
   });
 
@@ -151,6 +156,7 @@ describe("branch action availability", () => {
       "Delete",
       "Update",
       "Push...",
+      "Copy Branch Name",
     ]);
   });
 
