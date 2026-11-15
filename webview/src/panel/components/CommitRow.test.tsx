@@ -158,7 +158,7 @@ describe("CommitRow reachability styling", () => {
     );
 
     expect(
-      getByText("origin & main  origin & fix/picker-card-hover-highlight"),
+      getByText("origin & main, origin & fix/picker-card-hover-highlight"),
     ).toBeTruthy();
   });
 });
