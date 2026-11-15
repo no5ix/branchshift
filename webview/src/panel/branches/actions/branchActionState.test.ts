@@ -117,6 +117,7 @@ describe("branch action availability", () => {
       "merge-current",
       "separator:manage",
       "delete",
+      "delete-local-and-remote",
       "separator:copy",
       "copy-branch-name",
     ]);
@@ -138,6 +139,7 @@ describe("branch action availability", () => {
       "separator:manage",
       "rename",
       "delete",
+      "delete-local-and-remote",
       "separator:sync",
       "update",
       "push",
@@ -156,6 +158,7 @@ describe("branch action availability", () => {
       "Merge 'feature' into 'main'",
       "Rename...",
       "Delete",
+      "Delete Local and Remote",
       "Update",
       "Push...",
       "Copy Branch Name",
@@ -181,6 +184,23 @@ describe("branch action availability", () => {
       ),
     ).toMatchObject({
       label: "Delete 2 Branches",
+      enabled: true,
+    });
+  });
+
+  it("labels the combined delete action with the number of selected branches", () => {
+    const context = {
+      ...branchContext(localBranch),
+      deleteSelectionCount: 11,
+    };
+
+    expect(
+      getBranchActionItems(context).find(
+        (item) =>
+          item.kind === "action" && item.id === "delete-local-and-remote",
+      ),
+    ).toMatchObject({
+      label: "Delete Local and Remote 11 Branches",
       enabled: true,
     });
   });
