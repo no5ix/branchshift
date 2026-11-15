@@ -734,29 +734,38 @@ export class GitService {
     this.invalidateCache();
   }
 
-  /** Determine whether the rebased local branch is no longer a fast-forward of its upstream. */
-  async needsForcePushAfterRebase(
+  async rebase(onto: string): Promise<void> {
+    await this.execGit(["rebase", onto]);
+    this.invalidateCache();
+  }
+
+  async rebaseBranchAndDetectRewrite(
+    onto: string,
     branchName: string,
-    remote: string,
-    targetBranch: string,
-  ): Promise<boolean> {
+  ): Promise<{ rewrittenUpstream: boolean }> {
     const upstream = await this.getUpstreamRef(branchName);
-    if (
-      !upstream ||
-      upstream.remote !== remote ||
-      upstream.branch !== targetBranch
-    ) {
-      return false;
+    const before = upstream
+      ? await this.execGit(["rev-parse", "--verify", `refs/remotes/${upstream.remote}/${upstream.branch}`]).catch(() => "")
+      : "";
+    await this.execGit(["rebase", onto]);
+    this.invalidateCache();
+
+    // Rebase rewrites commit hashes. If the old upstream tip is no longer
+    // an ancestor of the rebased branch, a normal push cannot update it.
+    // Return this fact to the caller so it can use --force-with-lease.
+    if (!upstream || !before.trim()) {
+      return { rewrittenUpstream: false };
     }
-    const remoteRef = `refs/remotes/${remote}/${targetBranch}`;
-    const localTip = await this.execGit(["rev-parse", "--verify", branchName]).catch(() => "");
-    const remoteTip = await this.execGit(["rev-parse", "--verify", remoteRef]).catch(() => "");
-    if (!localTip.trim() || !remoteTip.trim()) return false;
     try {
-      await this.execGit(["merge-base", "--is-ancestor", remoteRef, branchName]);
-      return false;
+      await this.execGit([
+        "merge-base",
+        "--is-ancestor",
+        before.trim(),
+        branchName,
+      ]);
+      return { rewrittenUpstream: false };
     } catch {
-      return true;
+      return { rewrittenUpstream: true };
     }
   }
 
