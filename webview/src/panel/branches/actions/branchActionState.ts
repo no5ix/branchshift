@@ -18,6 +18,7 @@ const branchMenu: readonly (BranchActionId | { separator: string })[] = [
   { separator: "manage" },
   "rename",
   "delete",
+  "delete-local-and-remote",
   { separator: "sync" },
   "update",
   "push",
@@ -67,6 +68,10 @@ export function getBranchActionAvailability(
     id === "delete"
   ) {
     return { visible: !current, enabled: !current };
+  }
+  if (id === "delete-local-and-remote") {
+    const enabled = !current || branch.isRemote;
+    return { visible: true, enabled };
   }
   if (id === "rename") {
     const visible = !branch.isRemote;
@@ -139,6 +144,10 @@ function getLabel(id: BranchActionId, context: BranchActionContext): string {
       return context.selectedBranches && context.selectedBranches.length > 1
         ? `Delete ${context.selectedBranches.length} Branches`
         : "Delete";
+    case "delete-local-and-remote":
+      return context.deleteSelectionCount && context.deleteSelectionCount > 1
+        ? `Delete Local and Remote ${context.deleteSelectionCount} Branches`
+        : "Delete Local and Remote";
     case "update":
       return "Update";
     case "push":
