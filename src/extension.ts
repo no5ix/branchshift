@@ -436,9 +436,12 @@ export async function activate(context: vscode.ExtensionContext) {
     return undefined;
   });
 
-  messageRouter.handle("getBranches", async (_params, ctx) => {
+  messageRouter.handle("getBranches", async (params, ctx) => {
     if (!ctx) {
       return NOT_GIT_REPO;
+    }
+    if (params?.refresh === true) {
+      ctx.gitService.cache.invalidate("branches");
     }
     const branches = await ctx.gitService.getBranches();
     return branches.map((branch) => ({
