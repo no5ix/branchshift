@@ -88,6 +88,10 @@ Search for **BranchShift** or **Git** in the Extensions view.
 - VS Code 1.85.0 or later
 - Git available on `PATH`
 
+## How to build a App
+
+`pnpm run build`
+
 ## Local development
 
 ```bash
