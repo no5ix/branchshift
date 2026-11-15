@@ -51,14 +51,25 @@ describe("GitService branch mutations", () => {
       await git(worktree, "checkout", "main");
 
       assert.strictEqual(
-        await git(worktree, "rev-parse", "--verify", "refs/remotes/origin/topic"),
+        await git(
+          worktree,
+          "rev-parse",
+          "--verify",
+          "refs/remotes/origin/topic",
+        ),
         await git(worktree, "rev-parse", "--verify", "refs/heads/topic"),
       );
 
       await serviceFor(worktree).deleteRemoteBranch("origin/topic");
 
       assert.strictEqual(
-        await git(worktree, "ls-remote", "--heads", "origin", "refs/heads/topic"),
+        await git(
+          worktree,
+          "ls-remote",
+          "--heads",
+          "origin",
+          "refs/heads/topic",
+        ),
         "",
       );
       await assert.rejects(
