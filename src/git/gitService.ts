@@ -772,9 +772,9 @@ export class GitService {
 
     if (!upstream || !before.trim()) return { rewrittenUpstream: false };
 
-    // A force push is needed only when the rebase removed the old remote tip
-    // from the local branch history. Keep the tracking ref untouched so Git's
-    // --force-with-lease still protects against concurrent remote updates.
+    // Requiring the previous remote tip to remain an ancestor is the
+    // non-fast-forward test. The remote-tracking ref remains unchanged so
+    // the subsequent lease-protected push detects concurrent remote updates.
     return {
       rewrittenUpstream: !(await this.isAncestor(before.trim(), branchName)),
     };
