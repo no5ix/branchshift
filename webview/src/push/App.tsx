@@ -519,6 +519,8 @@ export function PushApp() {
           branchName: ctx.branchName,
           remote: ctx.targetRemote,
           targetBranch: ctx.targetBranch,
+          // The host detects the successful pull --rebase and selects
+          // --force-with-lease when the existing remote tip was rewritten.
           force: false,
         },
         { repoId: ctx.repoId },
