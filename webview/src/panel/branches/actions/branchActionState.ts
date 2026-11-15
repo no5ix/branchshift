@@ -1,3 +1,4 @@
+import type { BranchInfo } from "../../../shared/types/git";
 import type {
   BranchActionAvailability,
   BranchActionContext,
@@ -30,6 +31,42 @@ const tagMenu: readonly BranchActionId[] = [
   "toggle-favorite",
   "compare-current",
 ];
+
+export function resolveDeleteTargets(
+  selectedBranches: readonly BranchInfo[],
+  allBranches: readonly BranchInfo[],
+  currentBranch: string,
+): BranchInfo[] {
+  const candidates = [
+    ...selectedBranches,
+    ...selectedBranches
+      .map((candidate) =>
+        candidate.isRemote
+          ? allBranches.find(
+              (possibleLocal) =>
+                !possibleLocal.isRemote &&
+                possibleLocal.upstream === candidate.name,
+            )
+          : candidate.upstream
+            ? allBranches.find(
+                (possibleRemote) =>
+                  possibleRemote.isRemote &&
+                  possibleRemote.name === candidate.upstream,
+              )
+            : undefined,
+      )
+      .filter(
+        (candidate): candidate is BranchInfo => candidate !== undefined,
+      ),
+  ];
+
+  return candidates.filter(
+    (candidate, index, all) =>
+      (candidate.isRemote ||
+        (!candidate.isCurrent && candidate.name !== currentBranch)) &&
+      all.findIndex((item) => item.fullRef === candidate.fullRef) === index,
+  );
+}
 
 export function getBranchActionAvailability(
   id: BranchActionId,
