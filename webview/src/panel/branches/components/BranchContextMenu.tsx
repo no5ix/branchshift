@@ -171,6 +171,7 @@ export function BranchContextMenu({
                     border: 0,
                     padding: "6px 16px",
                     background: "transparent",
+                    borderRadius: 0,
                     cursor: item.enabled ? "pointer" : "default",
                     opacity: item.enabled ? 1 : 0.5,
                     color: "var(--vscode-menu-foreground, #ccc)",
