@@ -734,22 +734,30 @@ export class GitService {
     this.invalidateCache();
   }
 
-  /** Determine whether the remote branch has commits absent from local HEAD. */
+  /** Determine whether the rebased local branch is no longer a fast-forward of its upstream. */
   async needsForcePushAfterRebase(
     branchName: string,
     remote: string,
     targetBranch: string,
   ): Promise<boolean> {
     const upstream = await this.getUpstreamRef(branchName);
-    if (!upstream || upstream.remote !== remote || upstream.branch !== targetBranch) {
+    if (
+      !upstream ||
+      upstream.remote !== remote ||
+      upstream.branch !== targetBranch
+    ) {
       return false;
     }
     const remoteRef = `refs/remotes/${remote}/${targetBranch}`;
+    const localTip = await this.execGit(["rev-parse", "--verify", branchName]).catch(() => "");
     const remoteTip = await this.execGit(["rev-parse", "--verify", remoteRef]).catch(() => "");
-    if (!remoteTip.trim()) return false;
-    const ancestor = await this.execGit(["merge-base", "--is-ancestor", remoteRef, branchName], 1).catch(() => "");
-    // --is-ancestor exits 1 when the remote tip is not an ancestor of HEAD.
-    return !ancestor;
+    if (!localTip.trim() || !remoteTip.trim()) return false;
+    try {
+      await this.execGit(["merge-base", "--is-ancestor", remoteRef, branchName]);
+      return false;
+    } catch {
+      return true;
+    }
   }
 
   private async getUpstreamRef(
