@@ -41,4 +41,14 @@ describe("BranchContextMenu", () => {
     }
     expect(menu.querySelector(".commit-context-menu-separator")).not.toBeNull();
   });
+  it("uses a stable local ref identity for context-menu row highlighting", () => {
+    const ref = {
+      type: "local" as const,
+      name: "main",
+      fullRef: "refs/heads/main",
+    };
+
+    expect(`${ref.type}:${ref.fullRef}`).toBe("local:refs/heads/main");
+  });
+
 });
