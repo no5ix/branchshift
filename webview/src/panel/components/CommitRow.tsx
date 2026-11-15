@@ -250,25 +250,25 @@ export function CommitRow({
               })}
             </span>
             {/* Text labels (skip HEAD text) */}
-            <Tooltip
-              text={refItems
-                .filter((item) => item.type !== "HEAD")
-                .map((item) => item.label)
-                .join(", ")}
-            >
-              <span
-                style={{
-                  fontSize: "0.8em",
-                  whiteSpace: "nowrap",
-                  opacity: 0.85,
-                }}
-              >
-                {refItems
-                  .filter((item) => item.type !== "HEAD")
-                  .map((item) => item.label)
-                  .join(", ")}
-              </span>
-            </Tooltip>
+            {(() => {
+              const labels = refItems
+                .filter((item) => item.type !== "HEAD" && item.label)
+                .map((item) => item.label);
+              const displayLabel = labels.join(", ");
+              return (
+                <Tooltip text={displayLabel}>
+                  <span
+                    style={{
+                      fontSize: "0.8em",
+                      whiteSpace: "nowrap",
+                      opacity: 0.85,
+                    }}
+                  >
+                    {displayLabel}
+                  </span>
+                </Tooltip>
+              );
+            })()}
           </span>
         )}
       </span>
