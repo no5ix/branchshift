@@ -734,6 +734,44 @@ export class GitService {
     this.invalidateCache();
   }
 
+  /**
+   * Whether a branch needs a lease-protected push after being rebased onto
+   * another branch. The remote-tracking ref is intentionally left unchanged
+   * until the push succeeds, so --force-with-lease can detect concurrent pushes.
+   */
+  async needsForcePushAfterRebase(
+    branchName: string,
+    remote: string,
+    targetBranch: string,
+  ): Promise<boolean> {
+    const upstreamRef = await this.getUpstreamRef(branchName);
+    if (!upstreamRef || upstreamRef.remote !== remote || upstreamRef.branch !== targetBranch) {
+      return false;
+    }
+    const remoteRef = `refs/remotes/${remote}/${targetBranch}`;
+    try {
+      await this.execGit(["rev-parse", "--verify", remoteRef]);
+    } catch {
+      return false;
+    }
+    const mergeBase = await this.execGit(["merge-base", branchName, remoteRef]).catch(() => "");
+    const remoteTip = await this.execGit(["rev-parse", remoteRef]).catch(() => "");
+    return !!mergeBase && !!remoteTip && mergeBase.trim() !== remoteTip.trim();
+  }
+
+  private async getUpstreamRef(
+    branchName: string,
+  ): Promise<{ remote: string; branch: string } | null> {
+    const output = await this.execGit([
+      "for-each-ref",
+      "--format=%(upstream:remotename)%00%(upstream:remoteref)",
+      `refs/heads/${branchName}`,
+    ]).catch(() => "");
+    const [remote, remoteRef] = output.trim().split(FIELD_SEP);
+    if (!remote || !remoteRef?.startsWith("refs/heads/")) return null;
+    return { remote, branch: remoteRef.slice("refs/heads/".length) };
+  }
+
   async rebaseAction(action: "continue" | "abort" | "skip"): Promise<void> {
     if (action === "continue") {
       // Stage all resolved files before continuing
