@@ -61,4 +61,55 @@ describe("GitService branch mutations", () => {
       await fs.rm(repo, { recursive: true, force: true });
     }
   });
+  it("rebases onto an updated base and pushes the topic branch without pulling", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "branchshift-rebase-push-"));
+    const remote = path.join(root, "remote.git");
+    const repo = path.join(root, "repo");
+    try {
+      await fs.mkdir(repo);
+      await git(root, "init", "--bare", remote);
+      await git(repo, "init", "-b", "main");
+      await git(repo, "config", "user.name", "BranchShift Test");
+      await git(repo, "config", "user.email", "branchshift@example.com");
+      await fs.writeFile(path.join(repo, "README.md"), "initial\n");
+      await git(repo, "add", "README.md");
+      await git(repo, "commit", "-m", "initial");
+      await git(repo, "remote", "add", "origin", remote);
+      await git(repo, "push", "-u", "origin", "main");
+
+      await git(repo, "checkout", "-b", "topic");
+      await fs.writeFile(path.join(repo, "topic.txt"), "topic\n");
+      await git(repo, "add", "topic.txt");
+      await git(repo, "commit", "-m", "topic");
+      await git(repo, "push", "-u", "origin", "topic");
+
+      await git(repo, "checkout", "main");
+      await fs.writeFile(path.join(repo, "main.txt"), "base update\n");
+      await git(repo, "add", "main.txt");
+      await git(repo, "commit", "-m", "base update");
+      await git(repo, "push", "origin", "main");
+
+      await git(repo, "checkout", "topic");
+      const service = serviceFor(repo);
+      await service.rebase("main");
+      assert.strictEqual(await service.requiresLeasePush("topic"), true);
+
+      await service.push(
+        "topic",
+        await service.requiresLeasePush("topic"),
+        "origin",
+        "topic",
+      );
+      await service.clearLeasePushMarker("topic");
+
+      const localTip = await git(repo, "rev-parse", "topic");
+      const remoteTip = await git(repo, "ls-remote", "origin", "refs/heads/topic")
+        .then((value) => value.split("\t")[0]);
+      assert.strictEqual(localTip, remoteTip);
+      assert.strictEqual(await service.requiresLeasePush("topic"), false);
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
 });
