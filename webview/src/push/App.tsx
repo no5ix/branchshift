@@ -519,7 +519,7 @@ export function PushApp() {
           branchName: ctx.branchName,
           remote: ctx.targetRemote,
           targetBranch: ctx.targetBranch,
-          force: false,
+          force: true,
         },
         { repoId: ctx.repoId },
       );

@@ -730,8 +730,52 @@ export class GitService {
   }
 
   async rebase(onto: string): Promise<void> {
+    const branchName = await this.getCurrentBranch();
+    const upstream = branchName ? await this.getUpstreamRef(branchName) : null;
+    const upstreamRef = upstream
+      ? `refs/remotes/${upstream.remote}/${upstream.branch}`
+      : "";
+    const before = upstreamRef
+      ? await this.execGit(["rev-parse", "--verify", upstreamRef]).catch(() => "")
+      : "";
     await this.execGit(["rebase", onto]);
+    if (branchName && upstream && before.trim()) {
+      if (!(await this.isAncestor(before.trim(), branchName))) {
+        await this.markBranchForLeasePush(branchName);
+      }
+    }
     this.invalidateCache();
+  }
+
+  async markBranchForLeasePush(branchName: string): Promise<void> {
+    await this.execGit([
+      "config",
+      `branch.${branchName}.branchshift-force-with-lease`,
+      "true",
+    ]);
+  }
+
+  async requiresLeasePush(branchName: string): Promise<boolean> {
+    const key = `branch.${branchName}.branchshift-force-with-lease`;
+    const value = await this.execGit(["config", "--bool", "--get", key]).catch(() => "");
+    return value.trim() === "true";
+  }
+
+  async clearLeasePushMarker(branchName: string): Promise<void> {
+    await this.execGit([
+      "config",
+      "--unset",
+      `branch.${branchName}.branchshift-force-with-lease`,
+    ]).catch(() => "");
+  }
+
+  private async isAncestor(ancestor: string, descendant: string): Promise<boolean> {
+    try {
+      await this.execGit(["merge-base", "--is-ancestor", ancestor, descendant]);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   async rebaseAction(action: "continue" | "abort" | "skip"): Promise<void> {
@@ -760,7 +804,7 @@ export class GitService {
     rebaseOnto: string,
   ): Promise<void> {
     await this.execGit(["checkout", branchToCheckout]);
-    await this.execGit(["rebase", rebaseOnto]);
+    await this.rebase(rebaseOnto);
     this.invalidateCache();
   }
 
@@ -771,7 +815,20 @@ export class GitService {
     targetBranch?: string,
   ): Promise<string> {
     const args = ["push"];
-    if (force) args.push("--force-with-lease");
+    if (force) {
+      // Git's lease compares the remote with the last fetched remote-tracking
+      // ref. Do not refresh that ref here: a newer remote commit must cause the
+      // push to fail instead of being overwritten.
+      const expectedRemoteRef = `refs/remotes/${remote}/${targetBranch || branchName}`;
+      const expected = await this.execGit(["rev-parse", "--verify", expectedRemoteRef]).catch(() => "");
+      if (expected.trim()) {
+        args.push(
+          `--force-with-lease=refs/heads/${targetBranch || branchName}:${expected.trim()}`,
+        );
+      } else {
+        args.push("--force-with-lease");
+      }
+    }
     args.push(remote, `${branchName}:${targetBranch || branchName}`);
     const output = await this.execGit(args);
     this.invalidateCache();
@@ -1212,7 +1269,9 @@ export class GitService {
   async pushCurrentBranch(force = false): Promise<void> {
     const branch = await this.getCurrentBranch();
     if (branch) {
-      await this.push(branch, force);
+      const useLease = force || (await this.requiresLeasePush(branch));
+      await this.push(branch, useLease);
+      if (useLease) await this.clearLeasePushMarker(branch);
     }
   }
 

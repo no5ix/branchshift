@@ -843,12 +843,17 @@ export async function activate(context: vscode.ExtensionContext) {
     const remote = (params.remote as string) || "origin";
     const targetBranch = (params.targetBranch as string) || branchName;
     return withProgress(messageRouter, ctx.repoId, async () => {
+      const forceAfterRebase =
+        force ?? (await gitService.requiresLeasePush(branchName));
       const output = await gitService.push(
         branchName,
-        force ?? false,
+        forceAfterRebase,
         remote,
         targetBranch,
       );
+      if (forceAfterRebase) {
+        await gitService.clearLeasePushMarker(branchName);
+      }
       messageRouter.broadcastEvent("gitStateChanged", {
         scope: "all",
         repoId: ctx.repoId,
