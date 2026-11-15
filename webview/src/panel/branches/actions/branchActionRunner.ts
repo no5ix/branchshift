@@ -235,9 +235,7 @@ export async function runBranchAction(
             const recovery = formatted.recovery
               ? `\n${formatted.recovery}`
               : "";
-            failures.push(
-              `${candidate.name}: ${formatted.message}${recovery}`,
-            );
+            failures.push(`${candidate.name}: ${formatted.message}${recovery}`);
           }
         }
       }
