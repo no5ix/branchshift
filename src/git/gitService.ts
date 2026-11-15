@@ -739,6 +739,22 @@ export class GitService {
     this.invalidateCache();
   }
 
+  async markBranchForLeasePush(branchName: string): Promise<void> {
+    await this.execGit([
+      "config",
+      `branch.${branchName}.branchshift-force-with-lease`,
+      "true",
+    ]);
+  }
+
+  async consumeLeasePushMarker(branchName: string): Promise<boolean> {
+    const key = `branch.${branchName}.branchshift-force-with-lease`;
+    const value = await this.execGit(["config", "--bool", "--get", key]).catch(() => "");
+    if (value.trim() !== "true") return false;
+    await this.execGit(["config", "--unset", key]).catch(() => "");
+    return true;
+  }
+
   async rebaseBranchAndDetectRewrite(
     onto: string,
     branchName: string,
