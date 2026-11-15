@@ -183,6 +183,40 @@ describe("runBranchAction", () => {
     );
   });
 
+  it("confirms once and deletes every selected branch from the context menu", async () => {
+    const ports = createPorts();
+    const secondBranch: BranchInfo = {
+      ...branch,
+      name: "feature/two",
+      fullRef: "refs/heads/feature/two",
+      lastCommitHash: "second-tip",
+    };
+    const batchContext: BranchActionContext = {
+      ...context,
+      selectedBranches: [branch, secondBranch],
+    };
+
+    await runBranchAction("delete", batchContext, ports);
+
+    expect(ports.ui.confirm).toHaveBeenCalledWith(
+      "Delete these 2 branches?\\n\\n• feature\\n• feature/two",
+      "Delete 2 Branches",
+    );
+    expect(ports.operations.delete).toHaveBeenNthCalledWith(
+      1,
+      "repo-a",
+      branch,
+      false,
+    );
+    expect(ports.operations.delete).toHaveBeenNthCalledWith(
+      2,
+      "repo-a",
+      secondBranch,
+      false,
+    );
+    expect(ports.ui.clearRefFilterIfViewing).toHaveBeenCalledTimes(2);
+  });
+
   it("clears the ref filter when the branch it scoped to is deleted", async () => {
     const ports = createPorts();
 
