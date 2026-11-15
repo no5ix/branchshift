@@ -22,6 +22,7 @@ export function BranchSidebar({
   onNewBranch?: () => void;
 } = {}) {
   const selectedRefs = useGitLogStore((s) => s.selectedRefs);
+  const currentBranch = useGitLogStore((s) => s.currentBranch);
   const branches = useGitLogStore((s) => s.branches);
   const tags = useGitLogStore((s) => s.tags);
   const actionRepoId = useGitLogStore((s) => s.actionRepoId);
@@ -47,8 +48,21 @@ export function BranchSidebar({
     selectedBranch?.isFavorite ?? selectedTag?.isFavorite;
   const selectedTargetHash =
     selectedBranch?.lastCommitHash ?? selectedTag?.targetCommitHash;
+  const selectedLocalBranches = selectedRefs
+    .filter((ref) => ref.type === "local")
+    .map((ref) => branches.find(
+      (branch) => !branch.isRemote && branch.fullRef === ref.fullRef,
+    ))
+    .filter(
+      (branch): branch is NonNullable<typeof branch> =>
+        branch !== undefined &&
+        !branch.isCurrent &&
+        branch.name !== currentBranch,
+    );
   const latestSelectedRef = useRef(selectedRef);
   latestSelectedRef.current = selectedRef;
+  const latestSelectedRefs = useRef(selectedRefs);
+  latestSelectedRefs.current = selectedRefs;
   const isActionCurrent = useCallback(
     (repoId: string, ref?: GitRefIdentity) => {
       if (actionRepoId() !== repoId) return false;
@@ -125,6 +139,61 @@ export function BranchSidebar({
     requestFromSurface,
     selectedLocalBranch,
     selectedRef,
+  ]);
+
+  const handleDeleteSelectedBranches = useCallback(async () => {
+    if (selectedLocalBranches.length < 2) return;
+    const repoId = actionRepoId();
+    if (!repoId) return;
+
+    const branchesToDelete = [...selectedLocalBranches];
+    const capturedSelection = selectedRefs.map(refKey);
+    const names = branchesToDelete.map((branch) => branch.name);
+    const list = names.map((name) => `• ${name}`).join("\\n");
+    const result = (await requestFromSurface(
+      "showConfirmMessage",
+      {
+        message: `Delete these ${names.length} branches?\\n\\n${list}`,
+        confirmLabel: `Delete ${names.length} Branches`,
+      },
+      { scope: "global" },
+    )) as { confirmed?: boolean } | undefined;
+
+    if (
+      result?.confirmed !== true ||
+      actionRepoId() !== repoId ||
+      latestSelectedRefs.current.map(refKey).join("\\0") !==
+        capturedSelection.join("\\0")
+    ) {
+      return;
+    }
+
+    const failed: string[] = [];
+    for (const branch of branchesToDelete) {
+      if (actionRepoId() !== repoId) return;
+      try {
+        await operations.delete(repoId, branch, false);
+      } catch (error) {
+        const formatted = formatBranchActionError(error);
+        failed.push(`${branch.name}: ${formatted.message}`);
+      }
+    }
+
+    if (failed.length > 0 && actionRepoId() === repoId) {
+      await requestFromSurface(
+        "showErrorNotification",
+        {
+          message: `Could not delete ${failed.length} of ${names.length} selected branches:\\n${failed.join("\\n")}`,
+        },
+        { scope: "global" },
+      );
+    }
+  }, [
+    actionRepoId,
+    operations,
+    requestFromSurface,
+    selectedLocalBranches,
+    selectedRefs,
   ]);
 
   const handleFetch = useCallback(async () => {
@@ -218,13 +287,32 @@ export function BranchSidebar({
           <IconUpdate />
         </button>
       </Tooltip>
-      <Tooltip text="Delete Branch">
+      <Tooltip
+        text={
+          selectedLocalBranches.length > 1
+            ? `Delete ${selectedLocalBranches.length} Selected Branches`
+            : "Delete Branch"
+        }
+      >
         <button
           type="button"
           className="branch-sidebar-btn"
-          aria-label="Delete Branch"
-          onClick={handleDeleteBranch}
-          disabled={!mutationRepoId || !selectedLocalBranch}
+          aria-label={
+            selectedLocalBranches.length > 1
+              ? `Delete Selected Branches (${selectedLocalBranches.length})`
+              : "Delete Branch"
+          }
+          onClick={
+            selectedLocalBranches.length > 1
+              ? handleDeleteSelectedBranches
+              : handleDeleteBranch
+          }
+          disabled={
+            !mutationRepoId ||
+            (selectedLocalBranches.length > 1
+              ? false
+              : !selectedLocalBranch || selectedRefs.length !== 1)
+          }
         >
           <IconDelete />
         </button>
