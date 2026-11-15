@@ -40,6 +40,7 @@ export interface BranchTreeViewProps {
   collapsedIds: ReadonlySet<string>;
   selectedRefKeys: ReadonlySet<string>;
   filteredRef: string;
+  contextMenuRefKey?: string | null;
   searchQuery: string;
   showTags: boolean;
   /** No local, remote, or tag refs at all (after the search filter). */
@@ -75,6 +76,7 @@ export function BranchTreeView({
   collapsedIds,
   selectedRefKeys,
   filteredRef,
+  contextMenuRefKey,
   searchQuery,
   showTags,
   showEmptyState,
@@ -103,6 +105,7 @@ export function BranchTreeView({
     collapsedIds,
     selectedRefKeys,
     filteredRef,
+    contextMenuRefKey,
     onToggle,
     onRefClick,
     onRefKeyboardActivate,
