@@ -203,5 +203,4 @@ describe("RefService branch queries", () => {
       await fs.rm(base, { recursive: true, force: true });
     }
   });
-
 });
