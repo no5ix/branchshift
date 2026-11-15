@@ -50,12 +50,16 @@ describe("branch action availability", () => {
       visible: false,
       enabled: false,
     });
+    expect(
+      getBranchActionAvailability("delete-local-and-remote", current),
+    ).toEqual({ visible: true, enabled: false });
     expect(menuShape(current)).toEqual([
       "toggle-favorite",
       "separator:favorite",
       "new-branch",
       "compare-current",
       "rename",
+      "delete-local-and-remote",
       "separator:sync",
       "update",
       "push",
