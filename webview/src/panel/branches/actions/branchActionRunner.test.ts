@@ -183,6 +183,98 @@ describe("runBranchAction", () => {
     );
   });
 
+  it("deletes a local branch and its upstream remote after one explicit confirmation", async () => {
+    const ports = createPorts();
+    const remote: BranchInfo = {
+      ...branch,
+      name: "origin/feature",
+      fullRef: "refs/remotes/origin/feature",
+      isRemote: true,
+      upstream: undefined,
+    };
+    const pairedContext: BranchActionContext = {
+      ...context,
+      deleteTargets: [branch, remote],
+    };
+
+    await runBranchAction("delete-local-and-remote", pairedContext, ports);
+
+    expect(ports.ui.confirm).toHaveBeenCalledWith(
+      "Delete local and remote branches for 1 selected branch?\\n\\nLocal branches:\\n• feature\\n\\nRemote branches:\\n• origin/feature",
+      "Delete Local and Remote",
+    );
+    expect(ports.operations.delete).toHaveBeenNthCalledWith(
+      1,
+      "repo-a",
+      branch,
+      false,
+    );
+    expect(ports.operations.delete).toHaveBeenNthCalledWith(
+      2,
+      "repo-a",
+      remote,
+      false,
+    );
+  });
+
+  it("lists all local and remote refs for a multi-branch combined deletion", async () => {
+    const ports = createPorts();
+    const secondLocal: BranchInfo = {
+      ...branch,
+      name: "feature/two",
+      fullRef: "refs/heads/feature/two",
+    };
+    const firstRemote: BranchInfo = {
+      ...branch,
+      name: "origin/feature",
+      fullRef: "refs/remotes/origin/feature",
+      isRemote: true,
+      upstream: undefined,
+    };
+    const secondRemote: BranchInfo = {
+      ...firstRemote,
+      name: "origin/feature/two",
+      fullRef: "refs/remotes/origin/feature/two",
+    };
+    const batchContext: BranchActionContext = {
+      ...context,
+      deleteTargets: [branch, secondLocal, firstRemote, secondRemote],
+      deleteSelectionCount: 2,
+    };
+
+    await runBranchAction("delete-local-and-remote", batchContext, ports);
+
+    expect(ports.ui.confirm).toHaveBeenCalledWith(
+      "Delete local and remote branches for 2 selected branches?\\n\\nLocal branches:\\n• feature\\n• feature/two\\n\\nRemote branches:\\n• origin/feature\\n• origin/feature/two",
+      "Delete Local and Remote 2 Branches",
+    );
+    expect(ports.operations.delete).toHaveBeenCalledTimes(4);
+    expect(ports.operations.delete).toHaveBeenNthCalledWith(
+      1,
+      "repo-a",
+      branch,
+      false,
+    );
+    expect(ports.operations.delete).toHaveBeenNthCalledWith(
+      2,
+      "repo-a",
+      secondLocal,
+      false,
+    );
+    expect(ports.operations.delete).toHaveBeenNthCalledWith(
+      3,
+      "repo-a",
+      firstRemote,
+      false,
+    );
+    expect(ports.operations.delete).toHaveBeenNthCalledWith(
+      4,
+      "repo-a",
+      secondRemote,
+      false,
+    );
+  });
+
   it("confirms once and deletes every selected branch from the context menu", async () => {
     const ports = createPorts();
     const secondBranch: BranchInfo = {
