@@ -730,12 +730,20 @@ export class GitService {
   }
 
   async rebase(onto: string): Promise<void> {
+    const branchName = await this.getCurrentBranch();
+    const upstream = branchName ? await this.getUpstreamRef(branchName) : null;
+    const upstreamRef = upstream
+      ? `refs/remotes/${upstream.remote}/${upstream.branch}`
+      : "";
+    const before = upstreamRef
+      ? await this.execGit(["rev-parse", "--verify", upstreamRef]).catch(() => "")
+      : "";
     await this.execGit(["rebase", onto]);
-    this.invalidateCache();
-  }
-
-  async rebase(onto: string): Promise<void> {
-    await this.execGit(["rebase", onto]);
+    if (branchName && upstream && before.trim()) {
+      if (!(await this.isAncestor(before.trim(), branchName))) {
+        await this.markBranchForLeasePush(branchName);
+      }
+    }
     this.invalidateCache();
   }
 
