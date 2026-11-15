@@ -55,9 +55,7 @@ export function resolveDeleteTargets(
               )
             : undefined,
       )
-      .filter(
-        (candidate): candidate is BranchInfo => candidate !== undefined,
-      ),
+      .filter((candidate): candidate is BranchInfo => candidate !== undefined),
   ];
 
   return candidates.filter(
