@@ -102,6 +102,7 @@ export interface PanelStore {
   ) => Promise<unknown>;
 
   fetchInitialData: (options?: FetchInitialDataOptions) => Promise<void>;
+  refreshBranches: () => Promise<void>;
   loadMore: () => Promise<void>;
   selectCommit: (
     hash: string,
@@ -1397,6 +1398,16 @@ export function createGitLogStore(options: GitLogStoreOptions): GitLogStore {
           }
         })();
       }
+    },
+
+    async refreshBranches() {
+      const repoId = boundRepoId();
+      if (!repoId || get().operationInProgress) return;
+      const branches = (await request("getBranches", {
+        refresh: true,
+      })) as BranchInfo[] | null;
+      if (repoId !== boundRepoId() || !branches) return;
+      set({ branches });
     },
 
     async refresh(refreshOptions = {}) {
