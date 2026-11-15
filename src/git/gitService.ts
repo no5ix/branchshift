@@ -862,13 +862,18 @@ export class GitService {
   ): Promise<string> {
     const args = ["push"];
     if (force) {
-      // Pin the expected remote object ID explicitly. If someone pushed while
-      // the rebase was in progress, Git rejects this rather than overwriting it.
+      // Git's lease compares the remote with the last fetched remote-tracking
+      // ref. Do not refresh that ref here: a newer remote commit must cause the
+      // push to fail instead of being overwritten.
       const expectedRemoteRef = `refs/remotes/${remote}/${targetBranch || branchName}`;
-      const expected = await this.execGit(["rev-parse", "--verify", expectedRemoteRef]);
-      args.push(
-        `--force-with-lease=refs/heads/${targetBranch || branchName}:${expected.trim()}`,
-      );
+      const expected = await this.execGit(["rev-parse", "--verify", expectedRemoteRef]).catch(() => "");
+      if (expected.trim()) {
+        args.push(
+          `--force-with-lease=refs/heads/${targetBranch || branchName}:${expected.trim()}`,
+        );
+      } else {
+        args.push("--force-with-lease");
+      }
     }
     args.push(remote, `${branchName}:${targetBranch || branchName}`);
     const output = await this.execGit(args);
