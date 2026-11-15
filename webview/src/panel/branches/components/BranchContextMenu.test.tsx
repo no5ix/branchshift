@@ -52,7 +52,8 @@ describe("BranchContextMenu", () => {
     }) as HTMLButtonElement;
     expect(menu.style.width).toBe("max-content");
     expect(menu.style.maxWidth).toBe("calc(100vw - 8px)");
-    expect(action.style.width).toBe("100%");
+    expect(action.style.width).toBe("max-content");
+    expect(action.style.display).toBe("block");
     expect(action.style.boxSizing).toBe("border-box");
   });
   it("preserves the commit-menu class contract for tag presentation", () => {
