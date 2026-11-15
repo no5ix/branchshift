@@ -162,6 +162,29 @@ describe("branch action availability", () => {
     ]);
   });
 
+  it("labels Delete with the number of selected local branches", () => {
+    const context = {
+      ...branchContext(localBranch),
+      selectedBranches: [
+        localBranch,
+        {
+          ...localBranch,
+          name: "feature/two",
+          fullRef: "refs/heads/feature/two",
+        },
+      ],
+    };
+
+    expect(
+      getBranchActionItems(context).find(
+        (item) => item.kind === "action" && item.id === "delete",
+      ),
+    ).toMatchObject({
+      label: "Delete 2 Branches",
+      enabled: true,
+    });
+  });
+
   it("offers only favorite and compare actions for a tag", () => {
     const tag: TagInfo = {
       name: "v1.0.0",
