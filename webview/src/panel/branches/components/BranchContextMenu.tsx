@@ -109,6 +109,8 @@ export function BranchContextMenu({
               border: "1px solid var(--vscode-menu-border, #454545)",
               borderRadius: 4,
               padding: "4px 0",
+              display: "inline-grid",
+              gridTemplateColumns: "max-content",
               width: "max-content",
               minWidth: 160,
               maxWidth: "calc(100vw - 8px)",
@@ -166,7 +168,8 @@ export function BranchContextMenu({
                   }
                 : {
                     display: "block",
-                    width: "max-content",
+                    width: "100%",
+                    maxWidth: "100%",
                     boxSizing: "border-box",
                     border: 0,
                     padding: "6px 16px",
