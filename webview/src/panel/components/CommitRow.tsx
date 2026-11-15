@@ -84,6 +84,12 @@ function buildRefDisplayItems(refs: RefInfo[]): Array<{
     }
   }
 
+  const isMainRefDisplayName = (name: string) =>
+    name === "main" || name.endsWith("/main") || name.endsWith(" & main");
+  displayNames.sort(
+    (a, b) => Number(isMainRefDisplayName(b)) - Number(isMainRefDisplayName(a)),
+  );
+
   for (const name of displayNames) {
     if (name.includes(" & ")) {
       result.push({ key: `remote:${name}`, type: "remote-branch", label: "" });
