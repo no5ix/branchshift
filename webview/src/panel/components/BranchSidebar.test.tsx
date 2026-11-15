@@ -212,6 +212,134 @@ describe("BranchSidebar ref actions", () => {
     expect(getByRole("button", { name: "Branch Settings" })).toBeTruthy();
   });
 
+  it("confirms and deletes all selected local branches in one batch", async () => {
+    useRepoStore.setState({ activeRepoId: "repo-a" });
+    const firstRef = {
+      type: "local",
+      name: "feature/one",
+      fullRef: "refs/heads/feature/one",
+    } as const;
+    const secondRef = {
+      type: "local",
+      name: "feature/two",
+      fullRef: "refs/heads/feature/two",
+    } as const;
+    panelStore.setState({
+      currentBranch: "main",
+      selectedRefs: [firstRef, secondRef],
+      branches: [
+        {
+          name: "main",
+          fullRef: "refs/heads/main",
+          isRemote: false,
+          isCurrent: true,
+          isFavorite: false,
+          lastCommitHash: "main-tip",
+        },
+        {
+          name: "feature/one",
+          fullRef: firstRef.fullRef,
+          isRemote: false,
+          isCurrent: false,
+          isFavorite: false,
+          lastCommitHash: "one-tip",
+        },
+        {
+          name: "feature/two",
+          fullRef: secondRef.fullRef,
+          isRemote: false,
+          isCurrent: false,
+          isFavorite: false,
+          lastCommitHash: "two-tip",
+        },
+      ] as never[],
+    });
+    vi.mocked(bridge.request).mockResolvedValueOnce({ confirmed: true });
+    const { getByRole } = renderWithStore(<BranchSidebar />);
+
+    const deleteButton = getByRole("button", {
+      name: "Delete Selected Branches (2)",
+    });
+    fireEvent.click(deleteButton);
+
+    await waitFor(() => {
+      expect(bridge.request).toHaveBeenCalledWith(
+        "showConfirmMessage",
+        {
+          message:
+            "Delete these 2 branches?\\n\\n• feature/one\\n• feature/two",
+          confirmLabel: "Delete 2 Branches",
+        },
+        { scope: "global" },
+      );
+      expect(bridge.request).toHaveBeenCalledWith(
+        "deleteBranch",
+        { branchName: "feature/one", isRemote: false, force: false },
+        { repoId: "repo-a" },
+      );
+      expect(bridge.request).toHaveBeenCalledWith(
+        "deleteBranch",
+        { branchName: "feature/two", isRemote: false, force: false },
+        { repoId: "repo-a" },
+      );
+    });
+  });
+
+  it("does not include the current branch or remote refs in batch deletion", () => {
+    useRepoStore.setState({ activeRepoId: "repo-a" });
+    panelStore.setState({
+      currentBranch: "main",
+      selectedRefs: [
+        { type: "local", name: "main", fullRef: "refs/heads/main" },
+        {
+          type: "local",
+          name: "feature",
+          fullRef: "refs/heads/feature",
+        },
+        {
+          type: "remote",
+          name: "origin/feature",
+          fullRef: "refs/remotes/origin/feature",
+        },
+      ],
+      branches: [
+        {
+          name: "main",
+          fullRef: "refs/heads/main",
+          isRemote: false,
+          isCurrent: true,
+          isFavorite: false,
+          lastCommitHash: "main-tip",
+        },
+        {
+          name: "feature",
+          fullRef: "refs/heads/feature",
+          isRemote: false,
+          isCurrent: false,
+          isFavorite: false,
+          lastCommitHash: "feature-tip",
+        },
+        {
+          name: "origin/feature",
+          fullRef: "refs/remotes/origin/feature",
+          isRemote: true,
+          isCurrent: false,
+          isFavorite: false,
+          lastCommitHash: "remote-tip",
+        },
+      ] as never[],
+    });
+    const { getByRole } = renderWithStore(<BranchSidebar />);
+
+    expect(
+      (getByRole("button", { name: "Delete Branch" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+    expect(
+      getByRole("button", { name: "Delete Branch" }).getAttribute("aria-label"),
+    ).toBe("Delete Branch");
+  });
+
   it("shows a typed Update failure message and recovery once", async () => {
     useRepoStore.setState({ activeRepoId: "repo-a" });
     panelStore.setState({
