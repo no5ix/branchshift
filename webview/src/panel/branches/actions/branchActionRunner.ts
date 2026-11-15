@@ -161,7 +161,11 @@ export async function runBranchAction(
       const isBatch = branchesToDelete.length > 1;
       const branchNames = branchesToDelete.map((candidate) => candidate.name);
       const message = isBatch
-        ? `Delete these ${branchesToDelete.length} branches?\n\n${branchNames.map((name) => `• ${name}`).join("\n")}`
+        ? [
+            `Delete these ${branchesToDelete.length} branches?`,
+            "",
+            branchNames.map((name) => `• ${name}`).join("\n"),
+          ].join("\n")
         : `Delete branch '${branch.name}'?`;
       const confirmed = await ui.confirm(
         message,
@@ -187,7 +191,10 @@ export async function runBranchAction(
               `Branch '${candidate.name}' is not fully merged. Force delete?`,
               "Force Delete",
             );
-            if (!force || !ui.isCurrent(repoId, candidateRef, context.currentBranch)) {
+            if (
+              !force ||
+              !ui.isCurrent(repoId, candidateRef, context.currentBranch)
+            ) {
               continue;
             }
             try {
@@ -195,10 +202,14 @@ export async function runBranchAction(
               ui.clearRefFilterIfViewing(candidateRef);
             } catch (forceError) {
               const forceFormatted = formatBranchActionError(forceError);
-              failures.push(`${candidate.name}: ${forceFormatted.message}`);
+              failures.push(
+                `${candidate.name}: ${forceFormatted.message}${forceFormatted.recovery ? `\n${forceFormatted.recovery}` : ""}`,
+              );
             }
           } else {
-            failures.push(`${candidate.name}: ${formatted.message}`);
+            failures.push(
+              `${candidate.name}: ${formatted.message}${formatted.recovery ? `\n${formatted.recovery}` : ""}`,
+            );
           }
         }
       }
