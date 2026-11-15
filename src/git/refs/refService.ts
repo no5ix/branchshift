@@ -121,9 +121,15 @@ async function parseBranchOutput(
       upstreamRemote && upstreamBranchName
         ? `refs/remotes/${upstreamRemote}/${upstreamBranchName}`
         : fields[3]?.trim();
-    const counts = !isRemote && hasUpstream && upstreamTrackingRef
-      ? await resolveAheadBehind(executor, fullRef, upstreamTrackingRef, aheadBehind)
-      : aheadBehind;
+    const counts =
+      !isRemote && hasUpstream && upstreamTrackingRef
+        ? await resolveAheadBehind(
+            executor,
+            fullRef,
+            upstreamTrackingRef,
+            aheadBehind,
+          )
+        : aheadBehind;
     const { ahead, behind } = counts;
     branches.push({
       name: ref.shortName,
