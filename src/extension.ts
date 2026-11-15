@@ -849,7 +849,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const targetBranch = (params.targetBranch as string) || branchName;
     return withProgress(messageRouter, ctx.repoId, async () => {
       const autoLeasePush =
-        force === undefined && (await gitService.requiresLeasePush(branchName));
+        force !== true && (await gitService.requiresLeasePush(branchName));
       const output = await gitService.push(
         branchName,
         force ?? autoLeasePush,
