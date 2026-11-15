@@ -106,9 +106,13 @@ function parseBranchOutput(
       : parseTrack(track);
     const upstreamRemote = fields[6]?.trim();
     const upstreamRef = fields[7]?.trim();
+    const upstreamBranchName =
+      upstreamRef?.startsWith("refs/heads/")
+        ? upstreamRef.slice("refs/heads/".length)
+        : upstreamRef;
     const upstreamTrackingRef =
-      upstreamRemote && upstreamRef
-        ? `refs/remotes/${upstreamRemote}/${upstreamRef.replace(/^refs\\/heads\\//, "")}`
+      upstreamRemote && upstreamBranchName
+        ? `refs/remotes/${upstreamRemote}/${upstreamBranchName}`
         : fields[3]?.trim();
     const counts = !isRemote && hasUpstream && upstreamTrackingRef
       ? await resolveAheadBehind(this.executor, fullRef, upstreamTrackingRef, aheadBehind)
