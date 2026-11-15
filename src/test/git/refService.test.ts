@@ -172,4 +172,36 @@ describe("RefService branch queries", () => {
       await fs.rm(base, { recursive: true, force: true });
     }
   });
+  it("infers origin/main when the local main branch has no upstream configured", async () => {
+    const base = await fs.mkdtemp(
+      path.join(os.tmpdir(), "branchshift-inferred-upstream-"),
+    );
+    const repo = path.join(base, "repo");
+    const remote = path.join(base, "remote.git");
+    try {
+      await git(base, "init", "--bare", remote);
+      await git(base, "init", "-b", "main", repo);
+      await git(repo, "config", "user.name", "BranchShift Test");
+      await git(repo, "config", "user.email", "branchshift@example.com");
+      await fs.writeFile(path.join(repo, "README.md"), "initial\n");
+      await git(repo, "add", "README.md");
+      await git(repo, "commit", "-m", "initial");
+      await git(repo, "remote", "add", "origin", remote);
+      await git(repo, "push", "origin", "main");
+      await git(repo, "fetch", "origin");
+
+      await fs.writeFile(path.join(repo, "README.md"), "local ahead\n");
+      await git(repo, "commit", "-am", "local ahead");
+
+      const main = (await serviceFor(repo).getBranches()).find(
+        (entry) => entry.name === "main" && !entry.isRemote,
+      );
+      assert.strictEqual(main?.upstream, "origin/main");
+      assert.strictEqual(main?.ahead, 1);
+      assert.strictEqual(main?.behind, 0);
+    } finally {
+      await fs.rm(base, { recursive: true, force: true });
+    }
+  });
+
 });
