@@ -43,7 +43,11 @@ export function getBranchActionAvailability(
   if (!branch) return { visible: false, enabled: false };
 
   const current = branch.name === context.currentBranch;
-  if (id === "toggle-favorite" || id === "new-branch" || id === "copy-branch-name") {
+  if (
+    id === "toggle-favorite" ||
+    id === "new-branch" ||
+    id === "copy-branch-name"
+  ) {
     return { visible: true, enabled: true };
   }
   if (id === "compare-current") {
