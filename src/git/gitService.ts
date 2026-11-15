@@ -730,8 +730,17 @@ export class GitService {
   }
 
   async rebase(onto: string): Promise<void> {
+    const branch = (await this.execGit(["branch", "--show-current"])).trim();
+    if (!branch) {
+      throw new Error("Rebase requires a checked-out local branch.");
+    }
+
     await this.execGit(["rebase", onto]);
     this.invalidateCache();
+
+    // Rebase rewrites branch A; immediately pull its upstream so the local
+    // branch is synchronized before returning to the UI.
+    await this.pull(branch);
   }
 
   async rebaseAction(action: "continue" | "abort" | "skip"): Promise<void> {
