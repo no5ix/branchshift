@@ -107,50 +107,66 @@ async function parseBranchOutput(
     const fullRef =
       fields[1]?.trim() ?? `refs/${isRemote ? "remotes" : "heads"}/${name}`;
     const ref = parseGitRef(fullRef, name);
-    if (ref.kind === "remote" && /^refs\/remotes\/[^/]+\/HEAD$/.test(ref.id)) {
+    if (ref.kind === "remote" && /^refs\\/remotes\\/[^/]+\\/HEAD$/.test(ref.id)) {
       continue;
     }
-    const track = fields[4]?.trim() ?? "";
-    const hasUpstream = Boolean(fields[3]?.trim());
-    // Git's %(upstream:track) can be empty when an upstream ref has not
-    // been fetched/resolved (for example immediately after rebase). Compare
-    // the local tip to the configured remote-tracking ref directly so ahead
-    // commits are not silently hidden by missing track text.
-    const aheadBehind = isRemote ? { ahead: 0, behind: 0 } : parseTrack(track);
-    const upstreamRemote = fields[6]?.trim();
-    const upstreamRef = fields[7]?.trim();
-    const upstreamBranchName = upstreamRef?.startsWith("refs/heads/")
-      ? upstreamRef.slice("refs/heads/".length)
-      : upstreamRef;
-    const upstreamTrackingRef =
-      upstreamRemote && upstreamBranchName
-        ? `refs/remotes/${upstreamRemote}/${upstreamBranchName}`
-        : fields[3]?.trim();
-    const counts =
-      !isRemote && hasUpstream && upstreamTrackingRef
-        ? await resolveAheadBehind(
-            executor,
-            fullRef,
-            upstreamTrackingRef,
-            aheadBehind,
-          )
-        : aheadBehind;
-    const { ahead, behind } = counts;
+
+    let counts = isRemote
+      ? { ahead: 0, behind: 0 }
+      : parseTrack(fields[4]?.trim() ?? "");
+    let upstream: string | undefined;
+
+    if (!isRemote) {
+      const configured = await resolveConfiguredUpstream(executor, name);
+      if (configured) {
+        upstream = configured.displayName;
+        counts = await resolveAheadBehind(
+          executor,
+          fullRef,
+          configured.trackingRef,
+          counts,
+        );
+      } else {
+        upstream = fields[3]?.trim() || undefined;
+      }
+    }
+
     branches.push({
       name: ref.shortName,
       fullRef: ref.id,
       isRemote: ref.kind === "remote",
       isCurrent: !isRemote && fields[2]?.trim() === "*",
-      upstream: !isRemote ? fields[3]?.trim() || undefined : undefined,
+      upstream,
       checkedOutWorktreePath: !isRemote
         ? worktreeCheckouts.get(ref.id)
         : undefined,
-      ahead,
-      behind,
+      ahead: counts.ahead,
+      behind: counts.behind,
       lastCommitHash: fields[5]?.trim() ?? "",
     });
   }
   return branches;
+}
+
+async function resolveConfiguredUpstream(
+  executor: GitExecutor,
+  branchName: string,
+): Promise<{ displayName: string; trackingRef: string } | null> {
+  const [remoteResult, mergeResult] = await Promise.all([
+    executor.text(["config", "--get", `branch.${branchName}.remote`]).catch(() => ""),
+    executor.text(["config", "--get", `branch.${branchName}.merge`]).catch(() => ""),
+  ]);
+  const remote = remoteResult.trim();
+  const mergeRef = mergeResult.trim();
+  if (!remote || !mergeRef || remote === ".") return null;
+
+  const branch = mergeRef.startsWith("refs/heads/")
+    ? mergeRef.slice("refs/heads/".length)
+    : mergeRef;
+  return {
+    displayName: `${remote}/${branch}`,
+    trackingRef: `refs/remotes/${remote}/${branch}`,
+  };
 }
 
 function parseTrack(track: string): { ahead: number; behind: number } {
