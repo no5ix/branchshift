@@ -8,6 +8,7 @@ export interface BranchActionContext {
   repoId: string;
   ref: GitRefIdentity;
   branch?: BranchInfo;
+  selectedBranches?: BranchInfo[];
   tag?: TagInfo;
   currentBranch: string;
 }
