@@ -296,28 +296,70 @@ export function BranchTree({ onTogglePanel }: BranchTreeProps = {}) {
       const clickedRefIsSelected = selectedRefs.some(
         (ref) => refIdentityKey(ref) === refIdentityKey(entry.ref),
       );
-      const selectedBranches =
+      const selectedBranchRows =
         entry.branch &&
         clickedRefIsSelected &&
-        selectedRefs.length > 1 &&
-        (entry.ref.type === "local" || entry.ref.type === "remote") &&
-        selectedRefs.every((ref) => ref.type === entry.ref.type)
+        selectedRefs.length > 1
           ? selectedRefs
+              .filter((ref) => ref.type === "local" || ref.type === "remote")
               .map((ref) =>
                 branches.find(
                   (candidate) =>
                     candidate.isRemote === (ref.type === "remote") &&
-                    candidate.fullRef === ref.fullRef &&
-                    (candidate.isRemote ||
-                      (!candidate.isCurrent &&
-                        candidate.name !== currentBranch)),
+                    candidate.fullRef === ref.fullRef,
                 ),
               )
               .filter(
                 (candidate): candidate is NonNullable<typeof candidate> =>
                   candidate !== undefined,
               )
+          : entry.branch
+            ? [entry.branch]
+            : [];
+      const selectedBranches =
+        selectedBranchRows.length > 1 &&
+        selectedBranchRows.every(
+          (candidate) => candidate.isRemote === entry.branch?.isRemote,
+        )
+          ? selectedBranchRows.filter(
+              (candidate) =>
+                candidate.isRemote ||
+                (!candidate.isCurrent && candidate.name !== currentBranch),
+            )
           : [];
+      const deleteTargets = [
+        ...selectedBranchRows,
+        ...selectedBranchRows
+          .map((candidate) =>
+            candidate.isRemote
+              ? branches.find(
+                  (possibleLocal) =>
+                    !possibleLocal.isRemote &&
+                    possibleLocal.upstream === candidate.name,
+                )
+              : candidate.upstream
+                ? branches.find(
+                    (possibleRemote) =>
+                      possibleRemote.isRemote &&
+                      possibleRemote.name === candidate.upstream,
+                  )
+                : undefined,
+          )
+          .filter(
+            (candidate): candidate is NonNullable<typeof candidate> =>
+              candidate !== undefined,
+          ),
+      ].filter(
+        (candidate, index, all) =>
+          (candidate.isRemote ||
+            (!candidate.isCurrent && candidate.name !== currentBranch)) &&
+          all.findIndex((item) => item.fullRef === candidate.fullRef) === index,
+      );
+      const deleteSelectionCount = selectedBranchRows.filter(
+        (candidate) =>
+          candidate.isRemote ||
+          (!candidate.isCurrent && candidate.name !== currentBranch),
+      ).length;
       const context: BranchActionContext = {
         repoId: activeRepoId,
         ref: entry.ref,
@@ -325,6 +367,8 @@ export function BranchTree({ onTogglePanel }: BranchTreeProps = {}) {
         ...(selectedBranches.length > 1
           ? { selectedBranches }
           : {}),
+        ...(deleteTargets.length > 0 ? { deleteTargets } : {}),
+        ...(deleteSelectionCount > 1 ? { deleteSelectionCount } : {}),
         ...(entry.tag ? { tag: entry.tag } : {}),
         currentBranch,
       };
