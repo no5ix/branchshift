@@ -370,6 +370,9 @@ export function BranchTree({ onTogglePanel }: BranchTreeProps = {}) {
       async notifyError(title, error) {
         await notifyActionError(requestFromSurface, title, error);
       },
+      async copyBranchName(branchName) {
+        await navigator.clipboard.writeText(branchName);
+      },
     }),
     [
       overlayController.openCreate,

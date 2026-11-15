@@ -21,6 +21,8 @@ const branchMenu: readonly (BranchActionId | { separator: string })[] = [
   { separator: "sync" },
   "update",
   "push",
+  { separator: "copy" },
+  "copy-branch-name",
 ];
 
 const tagMenu: readonly BranchActionId[] = [
@@ -41,7 +43,11 @@ export function getBranchActionAvailability(
   if (!branch) return { visible: false, enabled: false };
 
   const current = branch.name === context.currentBranch;
-  if (id === "toggle-favorite" || id === "new-branch") {
+  if (
+    id === "toggle-favorite" ||
+    id === "new-branch" ||
+    id === "copy-branch-name"
+  ) {
     return { visible: true, enabled: true };
   }
   if (id === "compare-current") {
@@ -63,7 +69,7 @@ export function getBranchActionAvailability(
     return { visible: !current, enabled: !current };
   }
   if (id === "rename") {
-    const visible = !current && !branch.isRemote;
+    const visible = !branch.isRemote;
     return { visible, enabled: visible };
   }
   if (id === "update") {
@@ -135,6 +141,8 @@ function getLabel(id: BranchActionId, context: BranchActionContext): string {
       return "Update";
     case "push":
       return "Push...";
+    case "copy-branch-name":
+      return "Copy Branch Name";
   }
 }
 

@@ -23,7 +23,8 @@ export type BranchActionId =
   | "rename"
   | "delete"
   | "update"
-  | "push";
+  | "push"
+  | "copy-branch-name";
 
 export type BranchActionMenuItem =
   | { kind: "separator"; id: string }

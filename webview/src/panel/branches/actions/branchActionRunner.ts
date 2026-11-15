@@ -30,6 +30,7 @@ export interface BranchActionUi {
    */
   clearRefFilterIfViewing(ref: GitRefIdentity): void;
   notifyError(title: string, error: BranchActionError): Promise<void>;
+  copyBranchName(branchName: string): Promise<void>;
 }
 
 export interface BranchActionPorts {
@@ -203,6 +204,15 @@ export async function runBranchAction(
     case "push":
       if (!branch) return;
       ui.openPush(repoId, ref, branch.name);
+      return;
+    case "copy-branch-name":
+      if (!branch) return;
+      await runAndPresent(
+        () => ui.copyBranchName(branch.name),
+        "Copy branch name failed",
+        context,
+        ui,
+      );
   }
 }
 

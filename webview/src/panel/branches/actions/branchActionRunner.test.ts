@@ -62,6 +62,7 @@ function createPorts(): BranchActionPorts & {
       isCurrent: vi.fn().mockReturnValue(true),
       clearRefFilterIfViewing: vi.fn(),
       notifyError: vi.fn().mockResolvedValue(undefined),
+      copyBranchName: vi.fn().mockResolvedValue(undefined),
     },
   };
 }
@@ -128,6 +129,41 @@ describe("runBranchAction", () => {
       "repo-a",
       context.ref,
       "feature",
+    );
+  });
+
+  it("copies the selected branch name through the UI clipboard port", async () => {
+    const ports = createPorts();
+
+    await runBranchAction("copy-branch-name", context, ports);
+
+    expect(ports.ui.copyBranchName).toHaveBeenCalledWith("feature");
+  });
+
+  it("renames the current local branch", async () => {
+    const ports = createPorts();
+    const currentContext: BranchActionContext = {
+      ...context,
+      branch: {
+        ...branch,
+        name: "main",
+        fullRef: "refs/heads/main",
+        isCurrent: true,
+      },
+      ref: { type: "local", name: "main", fullRef: "refs/heads/main" },
+      currentBranch: "main",
+    };
+    vi.mocked(ports.ui.input).mockResolvedValue("trunk");
+
+    await runBranchAction("rename", currentContext, ports);
+
+    expect(ports.operations.rename).toHaveBeenCalledWith(
+      "repo-a",
+      "main",
+      "trunk",
+    );
+    expect(ports.ui.clearRefFilterIfViewing).toHaveBeenCalledWith(
+      currentContext.ref,
     );
   });
 
