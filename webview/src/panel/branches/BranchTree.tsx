@@ -11,7 +11,10 @@ import {
   submitCreateBranch,
   submitPush,
 } from "./actions/branchActionRunner";
-import { getBranchActionItems } from "./actions/branchActionState";
+import {
+  getBranchActionItems,
+  resolveDeleteTargets,
+} from "./actions/branchActionState";
 import type {
   BranchActionContext,
   BranchActionError,
@@ -327,33 +330,10 @@ export function BranchTree({ onTogglePanel }: BranchTreeProps = {}) {
                 (!candidate.isCurrent && candidate.name !== currentBranch),
             )
           : [];
-      const deleteTargets = [
-        ...selectedBranchRows,
-        ...selectedBranchRows
-          .map((candidate) =>
-            candidate.isRemote
-              ? branches.find(
-                  (possibleLocal) =>
-                    !possibleLocal.isRemote &&
-                    possibleLocal.upstream === candidate.name,
-                )
-              : candidate.upstream
-                ? branches.find(
-                    (possibleRemote) =>
-                      possibleRemote.isRemote &&
-                      possibleRemote.name === candidate.upstream,
-                  )
-                : undefined,
-          )
-          .filter(
-            (candidate): candidate is NonNullable<typeof candidate> =>
-              candidate !== undefined,
-          ),
-      ].filter(
-        (candidate, index, all) =>
-          (candidate.isRemote ||
-            (!candidate.isCurrent && candidate.name !== currentBranch)) &&
-          all.findIndex((item) => item.fullRef === candidate.fullRef) === index,
+      const deleteTargets = resolveDeleteTargets(
+        selectedBranchRows,
+        branches,
+        currentBranch,
       );
       const deleteSelectionCount = selectedBranchRows.filter(
         (candidate) =>
