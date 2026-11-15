@@ -107,7 +107,12 @@ async function parseBranchOutput(
     const fullRef =
       fields[1]?.trim() ?? `refs/${isRemote ? "remotes" : "heads"}/${name}`;
     const ref = parseGitRef(fullRef, name);
-    if (ref.kind === "remote" && /^refs\\/remotes\\/[^/]+\\/HEAD$/.test(ref.id)) {
+    if (
+      ref.kind === "remote" &&
+      ref.id.startsWith("refs/remotes/") &&
+      ref.id.endsWith("/HEAD") &&
+      ref.id.slice("refs/remotes/".length).split("/").length === 2
+    ) {
       continue;
     }
 
