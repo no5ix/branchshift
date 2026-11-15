@@ -93,12 +93,11 @@ describe("GitService branch mutations", () => {
 
       await git(repo, "checkout", "topic");
       const service = serviceFor(repo);
-      const result = await service.rebaseBranchAndDetectRewrite("main", "topic");
-      assert.strictEqual(result.rewrittenUpstream, true);
-      await service.markBranchForLeasePush("topic");
-      assert.strictEqual(await service.consumeLeasePushMarker("topic"), true);
-      assert.strictEqual(await service.consumeLeasePushMarker("topic"), false);
-      await service.push("topic", true, "origin", "topic");
+      await service.rebase("main");
+      assert.strictEqual(await service.requiresLeasePush("topic"), true);
+      await service.push("topic", await service.requiresLeasePush("topic"), "origin", "topic");
+      await service.clearLeasePushMarker("topic");
+      assert.strictEqual(await service.requiresLeasePush("topic"), false);
       assert.strictEqual(
         await git(repo, "rev-parse", "topic"),
         await git(repo, "ls-remote", "origin", "refs/heads/topic").then((v) => v.split("\\t")[0]),
