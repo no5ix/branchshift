@@ -730,42 +730,8 @@ export class GitService {
   }
 
   async rebase(onto: string): Promise<void> {
-    // Capture the configured upstream before rewriting local commit IDs.
-    // The branch's remote-tracking ref must remain untouched: it is the lease
-    // that protects a subsequent force-with-lease push from overwriting
-    // commits another contributor may have pushed.
-    const currentBranch = await this.getCurrentBranch();
-    let upstreamRemote: string | undefined;
-    let upstreamBranch: string | undefined;
-
-    if (currentBranch) {
-      const output = await this.execGit([
-        "for-each-ref",
-        "--format=%(upstream:remotename)%00%(upstream:remoteref)",
-        `refs/heads/${currentBranch}`,
-      ]).catch(() => "");
-      const [remote, remoteRef] = output.trim().split(FIELD_SEP);
-      if (remote && remoteRef?.startsWith("refs/heads/")) {
-        upstreamRemote = remote;
-        upstreamBranch = remoteRef.slice("refs/heads/".length);
-      }
-    }
-
     await this.execGit(["rebase", onto]);
     this.invalidateCache();
-
-    // Rebase may make the local branch non-fast-forward relative to its
-    // upstream. Push with --force-with-lease, never --force. Git's lease uses
-    // the still-current remote-tracking ref and rejects concurrent remote work.
-    // We intentionally don't push automatically; the normal Push action will
-    // recognize that the branch needs a lease-protected update.
-    if (upstreamRemote && upstreamBranch) {
-      await this.execGit([
-        "config",
-        `branch.${currentBranch}.branchshift-rebase-upstream`,
-        `${upstreamRemote}/${upstreamBranch}`,
-      ]);
-    }
   }
 
   async rebaseAction(action: "continue" | "abort" | "skip"): Promise<void> {
