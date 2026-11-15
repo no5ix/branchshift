@@ -199,7 +199,7 @@ describe("runBranchAction", () => {
     await runBranchAction("delete", batchContext, ports);
 
     expect(ports.ui.confirm).toHaveBeenCalledWith(
-      "Delete these 2 branches?\\n\\n• feature\\n• feature/two",
+      "Delete these 2 branches?\n\n• feature\n• feature/two",
       "Delete 2 Branches",
     );
     expect(ports.operations.delete).toHaveBeenNthCalledWith(
