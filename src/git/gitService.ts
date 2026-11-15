@@ -827,8 +827,7 @@ export class GitService {
     rebaseOnto: string,
   ): Promise<void> {
     await this.execGit(["checkout", branchToCheckout]);
-    await this.execGit(["rebase", rebaseOnto]);
-    this.invalidateCache();
+    await this.rebase(rebaseOnto);
   }
 
   async push(
