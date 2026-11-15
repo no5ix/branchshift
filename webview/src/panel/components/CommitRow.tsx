@@ -38,50 +38,46 @@ function buildRefDisplayItems(refs: RefInfo[]): Array<{
   label: string;
 }> {
   const hasHead = refs.some((ref) => ref.type === "HEAD");
+  const branchRef = refs.find((ref) => ref.type === "branch");
   const result: Array<{ key: string; type: RefInfo["type"]; label: string }> = [];
 
-  const localBranches = refs
-    .filter((ref) => ref.type === "branch")
-    .map((ref) => ref.name);
+  const localBranches = refs.filter((ref) => ref.type === "branch").map((ref) => ref.name);
   const remoteBranches = refs
     .filter((ref) => ref.type === "remote-branch" && !ref.name.endsWith("/HEAD"))
     .map((ref) => ref.name);
   const tags = refs.filter((ref) => ref.type === "tag").map((ref) => ref.name);
 
-  // Each remote/local pair is a distinct ref label. A commit can be the tip
-  // of several branches, so do not stop after the first matching remote.
   const displayNames: string[] = [];
   const usedRemotes = new Set<string>();
   const usedLocals = new Set<string>();
   for (const local of localBranches) {
-    const matchingRemotes = remoteBranches.filter((remote) => {
-      const slash = remote.indexOf("/");
-      return slash >= 0 && remote.slice(slash + 1) === local;
+    const matchingRemotes = remoteBranches.filter((remoteRef) => {
+      const slash = remoteRef.indexOf("/");
+      return slash >= 0 && remoteRef.slice(slash + 1) === local;
     });
-    if (matchingRemotes.length > 0) {
-      for (const remoteRef of matchingRemotes) {
-        const remote = remoteRef.slice(0, remoteRef.indexOf("/"));
-        displayNames.push(`${remote} & ${local}`);
-        usedRemotes.add(remoteRef);
-      }
+    for (const remoteRef of matchingRemotes) {
+      const remote = remoteRef.slice(0, remoteRef.indexOf("/"));
+      displayNames.push(`${remote} & ${local}`);
+      usedRemotes.add(remoteRef);
       usedLocals.add(local);
     }
   }
 
   for (const local of localBranches) {
     if (usedLocals.has(local)) continue;
-    if (hasHead && refs.some((ref) => ref.type === "HEAD") &&
-        refs.some((ref) => ref.type === "branch" && ref.name === local)) {
-      // Keep explicit labels for non-HEAD local branches; omit only the
-      // checked-out branch because HEAD already identifies that checkout.
-    }
+    if (hasHead && branchRef?.name === local) continue;
     displayNames.push(local);
   }
-  for (const remote of remoteBranches) {
-    if (!usedRemotes.has(remote)) displayNames.push(remote);
+  for (const remoteRef of remoteBranches) {
+    if (!usedRemotes.has(remoteRef)) displayNames.push(remoteRef);
   }
 
-  if (hasHead) result.push({ key: "HEAD", type: "HEAD", label: "" });
+  if (hasHead) {
+    result.push({ key: "HEAD", type: "HEAD", label: "" });
+    if (branchRef && !usedLocals.has(branchRef.name)) {
+      displayNames.unshift(branchRef.name);
+    }
+  }
 
   for (const name of displayNames) {
     if (name.includes(" & ")) {
