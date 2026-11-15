@@ -158,8 +158,12 @@ async function resolveConfiguredUpstream(
   branchName: string,
 ): Promise<{ displayName: string; trackingRef: string } | null> {
   const [remoteResult, mergeResult] = await Promise.all([
-    executor.text(["config", "--get", `branch.${branchName}.remote`]).catch(() => ""),
-    executor.text(["config", "--get", `branch.${branchName}.merge`]).catch(() => ""),
+    executor
+      .text(["config", "--get", `branch.${branchName}.remote`])
+      .catch(() => ""),
+    executor
+      .text(["config", "--get", `branch.${branchName}.merge`])
+      .catch(() => ""),
   ]);
   const remote = remoteResult.trim();
   const mergeRef = mergeResult.trim();
