@@ -23,6 +23,7 @@ export interface BranchTreeNodeViewProps {
   onRefKeyboardActivate(ref: GitRefIdentity): void;
   onRefDoubleClick(ref: GitRefIdentity): void;
   onRefContextMenu(event: React.MouseEvent, entry: BranchTreeEntry): void;
+  contextMenuRefKey?: string | null;
 }
 
 export function BranchTreeNodeView(props: BranchTreeNodeViewProps) {
@@ -71,6 +72,7 @@ function RefRow({
   depth,
   selectedRefKeys,
   filteredRef,
+  contextMenuRefKey,
   onRefClick,
   onRefKeyboardActivate,
   onRefDoubleClick,
@@ -98,6 +100,7 @@ function RefRow({
         : "Branch";
   const isSelected = selectedRefKeys.has(refIdentityKey(ref));
   const isFiltered = filteredRef === ref.fullRef;
+  const isContextMenuTarget = contextMenuRefKey === refIdentityKey(ref);
 
   return (
     <div
@@ -105,7 +108,7 @@ function RefRow({
       tabIndex={0}
       aria-label={name}
       aria-selected={isSelected}
-      className={`selectable-row${isSelected ? " selected" : ""}`}
+      className={`selectable-row${isSelected ? " selected" : ""}${isContextMenuTarget ? " context-menu-target" : ""}`}
       onClick={(event) => onRefClick(event, ref)}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
@@ -120,8 +123,9 @@ function RefRow({
         padding: `0 8px 0 ${20 + depth * 12 + 16}px`,
         boxSizing: "border-box",
         fontWeight: entry.isCurrent || isFiltered ? 600 : 400,
-        background:
-          entry.isCurrent && !isSelected
+        background: isContextMenuTarget
+          ? "var(--vscode-list-hoverBackground, var(--list-hoverBackground, rgba(0,0,0,0.04)))"
+          : entry.isCurrent && !isSelected
             ? "var(--list-hoverBackground, rgba(0,0,0,0.04))"
             : undefined,
         color: isSelected ? "var(--selected-fg)" : "inherit",
