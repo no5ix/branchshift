@@ -152,46 +152,64 @@ export async function runBranchAction(
       if (renamed) ui.clearRefFilterIfViewing(ref);
       return;
     }
-    case "delete":
+    case "delete": {
       if (!branch) return;
-      if (
-        !(await confirmCurrent(
-          `Delete branch '${branch.name}'?`,
-          "Delete",
-          context,
-          ui,
-        ))
-      )
-        return;
-      try {
-        await operations.delete(repoId, branch, false);
-        ui.clearRefFilterIfViewing(ref);
-      } catch (error) {
-        if (!isActionCurrent(context, ui)) return;
-        const formatted = formatBranchActionError(error);
-        if (formatted.code !== BRANCH_NOT_FULLY_MERGED) {
-          await notifyBranchActionErrorIfCurrent(
-            "Delete failed",
-            formatted,
-            context,
-            ui,
-          );
-          return;
+      const branchesToDelete =
+        context.selectedBranches && context.selectedBranches.length > 1
+          ? context.selectedBranches
+          : [branch];
+      const isBatch = branchesToDelete.length > 1;
+      const branchNames = branchesToDelete.map((candidate) => candidate.name);
+      const message = isBatch
+        ? `Delete these ${branchesToDelete.length} branches?\\n\\n${branchNames.map((name) => `• ${name}`).join("\\n")}`
+        : `Delete branch '${branch.name}'?`;
+      const confirmed = await ui.confirm(
+        message,
+        isBatch ? `Delete ${branchesToDelete.length} Branches` : "Delete",
+      );
+      if (!confirmed || !isActionCurrent(context, ui)) return;
+
+      const failures: string[] = [];
+      for (const candidate of branchesToDelete) {
+        const candidateRef: GitRefIdentity = {
+          type: "local",
+          name: candidate.name,
+          fullRef: candidate.fullRef,
+        };
+        if (!ui.isCurrent(repoId, candidateRef, context.currentBranch)) continue;
+        try {
+          await operations.delete(repoId, candidate, false);
+          ui.clearRefFilterIfViewing(candidateRef);
+        } catch (error) {
+          const formatted = formatBranchActionError(error);
+          if (formatted.code === BRANCH_NOT_FULLY_MERGED) {
+            const force = await ui.confirm(
+              `Branch '${candidate.name}' is not fully merged. Force delete?`,
+              "Force Delete",
+            );
+            if (!force || !ui.isCurrent(repoId, candidateRef, context.currentBranch)) {
+              continue;
+            }
+            try {
+              await operations.delete(repoId, candidate, true);
+              ui.clearRefFilterIfViewing(candidateRef);
+            } catch (forceError) {
+              const forceFormatted = formatBranchActionError(forceError);
+              failures.push(`${candidate.name}: ${forceFormatted.message}`);
+            }
+          } else {
+            failures.push(`${candidate.name}: ${formatted.message}`);
+          }
         }
-        const force = await ui.confirm(
-          `Branch '${branch.name}' is not fully merged. Force delete?`,
-          "Force Delete",
-        );
-        if (!isActionCurrent(context, ui) || !force) return;
-        const removed = await runAndPresent(
-          () => operations.delete(repoId, branch, true),
-          "Force delete failed",
-          context,
-          ui,
-        );
-        if (removed) ui.clearRefFilterIfViewing(ref);
+      }
+      if (failures.length > 0 && ui.isCurrent(repoId, undefined)) {
+        await ui.notifyError("Delete failed", {
+          code: "BATCH_DELETE_FAILED",
+          message: failures.join("\\n"),
+        });
       }
       return;
+    }
     case "update":
       if (!branch) return;
       await runAndPresent(
