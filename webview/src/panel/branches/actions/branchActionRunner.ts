@@ -180,7 +180,11 @@ export async function runBranchAction(
           name: candidate.name,
           fullRef: candidate.fullRef,
         };
-        if (!ui.isCurrent(repoId, candidateRef, context.currentBranch)) continue;
+        if (
+          !ui.isCurrent(repoId, candidateRef, context.currentBranch)
+        ) {
+          continue;
+        }
         try {
           await operations.delete(repoId, candidate, false);
           ui.clearRefFilterIfViewing(candidateRef);
@@ -202,13 +206,19 @@ export async function runBranchAction(
               ui.clearRefFilterIfViewing(candidateRef);
             } catch (forceError) {
               const forceFormatted = formatBranchActionError(forceError);
+              const recovery = forceFormatted.recovery
+                ? `\n${forceFormatted.recovery}`
+                : "";
               failures.push(
-                `${candidate.name}: ${forceFormatted.message}${forceFormatted.recovery ? `\n${forceFormatted.recovery}` : ""}`,
+                `${candidate.name}: ${forceFormatted.message}${recovery}`,
               );
             }
           } else {
+            const recovery = formatted.recovery
+              ? `\n${formatted.recovery}`
+              : "";
             failures.push(
-              `${candidate.name}: ${formatted.message}${formatted.recovery ? `\n${formatted.recovery}` : ""}`,
+              `${candidate.name}: ${formatted.message}${recovery}`,
             );
           }
         }
