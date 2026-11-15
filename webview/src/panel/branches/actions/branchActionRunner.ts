@@ -166,11 +166,11 @@ export async function runBranchAction(
         .map((candidate) => candidate.name);
       const localList =
         localNames.length > 0
-          ? localNames.map((name) => `• ${name}`).join("\\n")
+          ? localNames.map((name) => `• ${name}`).join("\n")
           : "• (none found)";
       const remoteList =
         remoteNames.length > 0
-          ? remoteNames.map((name) => `• ${name}`).join("\\n")
+          ? remoteNames.map((name) => `• ${name}`).join("\n")
           : "• (none found)";
       const selectionCount = context.deleteSelectionCount ?? 1;
       const countLabel =
@@ -178,8 +178,8 @@ export async function runBranchAction(
       const sections = [
         `Delete local and remote branches for ${selectionCount} selected branch${selectionCount === 1 ? "" : "es"}?`,
         "",
-        `Local branches:\n${localNames.length > 0 ? localNames.map((name) => `• ${name}`).join("\n") : "• (none found)"}`,
-        `Remote branches:\n${remoteNames.length > 0 ? remoteNames.map((name) => `• ${name}`).join("\n") : "• (none found)"}`,
+        `Local branches:\n${localList}`,
+        `Remote branches:\n${remoteList}`,
       ];
       const confirmed = await ui.confirm(
         sections.join("\n\n"),
