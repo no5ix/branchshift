@@ -20,6 +20,40 @@ const items: BranchActionMenuItem[] = [
 ];
 
 describe("BranchContextMenu", () => {
+
+  it("sizes the branch menu to its longest item without stretching across the panel", () => {
+    const view = render(
+      <BranchContextMenu
+        x={20}
+        y={30}
+        name="feature/example"
+        items={[
+          {
+            kind: "action",
+            id: "long-action",
+            label: "Checkout and Rebase onto 'origin/feature/example'",
+            enabled: true,
+          },
+          {
+            kind: "action",
+            id: "short-action",
+            label: "Checkout",
+            enabled: true,
+          },
+        ]}
+        presentation="branch"
+        onAction={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const menu = view.getByRole("menu") as HTMLElement;
+    const action = within(menu).getByRole("menuitem", { name: "Checkout" }) as HTMLButtonElement;
+    expect(menu.style.width).toBe("max-content");
+    expect(menu.style.maxWidth).toBe("calc(100vw - 8px)");
+    expect(action.style.width).toBe("100%");
+    expect(action.style.boxSizing).toBe("border-box");
+  });
   it("preserves the commit-menu class contract for tag presentation", () => {
     const view = render(
       <BranchContextMenu
