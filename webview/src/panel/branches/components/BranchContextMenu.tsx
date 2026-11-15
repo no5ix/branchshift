@@ -178,6 +178,8 @@ export function BranchContextMenu({
                     fontSize: "13px",
                     textAlign: "left",
                     whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
                   }
             }
             onMouseEnter={(event) => {
