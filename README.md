@@ -1,3 +1,15 @@
+
+
+# no5ix - how to build and how to install it to vsc
+
+1. build: in the project root path, `pnpm run vsce:package`
+2. install: open VS Code:
+      1. Press `Cmd + Shift + P`.
+      2. Select Extensions: Install from VSIX...
+      3. Select branchshift-0.6.4.vsix.
+      4. Reload VS Code.
+
+
 <a name="readme-top"></a>
 
 <div align="center">
@@ -88,9 +100,7 @@ Search for **BranchShift** or **Git** in the Extensions view.
 - VS Code 1.85.0 or later
 - Git available on `PATH`
 
-## How to build a App
 
-`pnpm run build`
 
 ## Local development
 
