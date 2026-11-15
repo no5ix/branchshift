@@ -93,7 +93,32 @@ export function broadcastActiveRepoLogRefresh(
   });
 }
 
+/**
+ * Create and show the BranchShift status bar entry synchronously, before
+ * activation performs asynchronous repository discovery or other setup.
+ */
+export function registerBranchShiftStatusBarItem(
+  subscriptions: { push(...items: vscode.Disposable[]): unknown },
+  windowApi: Pick<typeof vscode.window, "createStatusBarItem">,
+): vscode.StatusBarItem {
+  const statusBarItem = windowApi.createStatusBarItem(
+    vscode.StatusBarAlignment.Left,
+    100,
+  );
+  statusBarItem.text = "$(git-branch) BranchShift";
+  statusBarItem.tooltip = "Open BranchShift Git Log";
+  statusBarItem.command = "branchshift.gitLog.focus";
+  statusBarItem.show();
+  subscriptions.push(statusBarItem);
+  return statusBarItem;
+}
+
 export async function activate(context: vscode.ExtensionContext) {
+  // Register the status bar entry before any asynchronous startup work.
+  // Repo discovery can take long enough on large/new workspaces that delaying
+  // this until the end of activation makes BranchShift appear to be missing.
+  registerBranchShiftStatusBarItem(context.subscriptions, vscode.window);
+
   // 1. MessageRouter (always created)
   const messageRouter = new MessageRouter();
 
@@ -2075,16 +2100,6 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
   );
 
-  // 8. Status bar item to quickly open the panel
-  const statusBarItem = vscode.window.createStatusBarItem(
-    vscode.StatusBarAlignment.Left,
-    100,
-  );
-  statusBarItem.text = "$(git-branch) BranchShift";
-  statusBarItem.tooltip = "Open BranchShift Git Log";
-  statusBarItem.command = "branchshift.gitLog.focus";
-  statusBarItem.show();
-  context.subscriptions.push(statusBarItem);
   messageRouter.enableStrictRepoContext();
 }
 
