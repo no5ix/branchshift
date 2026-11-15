@@ -217,6 +217,52 @@ describe("runBranchAction", () => {
     expect(ports.ui.clearRefFilterIfViewing).toHaveBeenCalledTimes(2);
   });
 
+  it("confirms and deletes every selected remote branch as a remote ref", async () => {
+    const ports = createPorts();
+    const firstRemote: BranchInfo = {
+      ...branch,
+      name: "origin/feature",
+      fullRef: "refs/remotes/origin/feature",
+      isRemote: true,
+      upstream: undefined,
+    };
+    const secondRemote: BranchInfo = {
+      ...firstRemote,
+      name: "origin/feature/two",
+      fullRef: "refs/remotes/origin/feature/two",
+      lastCommitHash: "remote-second-tip",
+    };
+    const remoteContext: BranchActionContext = {
+      ...context,
+      ref: {
+        type: "remote",
+        name: firstRemote.name,
+        fullRef: firstRemote.fullRef,
+      },
+      branch: firstRemote,
+      selectedBranches: [firstRemote, secondRemote],
+    };
+
+    await runBranchAction("delete", remoteContext, ports);
+
+    expect(ports.ui.confirm).toHaveBeenCalledWith(
+      "Delete these 2 branches?\\n\\n• origin/feature\\n• origin/feature/two",
+      "Delete 2 Branches",
+    );
+    expect(ports.operations.delete).toHaveBeenNthCalledWith(
+      1,
+      "repo-a",
+      firstRemote,
+      false,
+    );
+    expect(ports.operations.delete).toHaveBeenNthCalledWith(
+      2,
+      "repo-a",
+      secondRemote,
+      false,
+    );
+  });
+
   it("clears the ref filter when the branch it scoped to is deleted", async () => {
     const ports = createPorts();
 
