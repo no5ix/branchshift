@@ -730,10 +730,42 @@ export class GitService {
   }
 
   async rebase(onto: string): Promise<void> {
+    // A plain rebase rewrites local commit IDs but leaves refs/remotes/<remote>/<branch>
+    // pointing at the old history. Record the current branch's configured upstream
+    // before rebasing, then refresh that remote-tracking ref afterward. This makes
+    // the rebased branch's ahead/behind counts accurate and lets a normal push work
+    // when the rebased branch is a fast-forward of its remote (e.g. rebasing onto
+    // the remote's updated default branch).
+    const currentBranch = await this.getCurrentBranch();
+    let upstreamRef: string | undefined;
+    let upstreamRemote: string | undefined;
+
+    if (currentBranch) {
+      try {
+        const output = await this.execGit([
+          "for-each-ref",
+          "--format=%(upstream)",
+          `refs/heads/${currentBranch}`,
+        ]);
+        upstreamRef = output.trim() || undefined;
+      } catch {
+        // A branch without an upstream is valid; it simply has nothing to refresh.
+      }
+      if (upstreamRef) {
+        upstreamRemote = await this.getDefaultRemote(currentBranch);
+      }
+    }
+
     await this.execGit(["rebase", onto]);
+
+    // Refresh exactly this branch's upstream, not every remote branch.
+    // Fetching updates the remote-tracking ref but does not merge/rebase local work.
+    if (upstreamRef && upstreamRemote) {
+      await this.execGit(["fetch", upstreamRemote, "--", upstreamRef.replace(/^refs\\/heads\\//, "")]);
+    }
+
     this.invalidateCache();
   }
-
   async rebaseAction(action: "continue" | "abort" | "skip"): Promise<void> {
     if (action === "continue") {
       // Stage all resolved files before continuing
