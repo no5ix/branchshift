@@ -33,10 +33,11 @@ export class RefService {
       .text(["branch", "-r", `--format=${branchFormat}`])
       .catch(() => "");
 
-    const localBranches = parseBranchOutput(
+    const localBranches = await parseBranchOutput(
       localOutput,
       false,
       worktreeCheckouts,
+      this.executor,
     );
     // Pin target for the branch tree: resolved after the names are known, and
     // only a name with a local branch is ever marked.
@@ -50,7 +51,12 @@ export class RefService {
         ...branch,
         isDefault: branch.name === defaultName,
       })),
-      ...parseBranchOutput(remoteOutput, true, worktreeCheckouts),
+      ...(await parseBranchOutput(
+        remoteOutput,
+        true,
+        worktreeCheckouts,
+        this.executor,
+      )),
     ];
   }
 }
@@ -79,11 +85,12 @@ async function resolveAheadBehind(
   }
 }
 
-function parseBranchOutput(
+async function parseBranchOutput(
   output: string,
   isRemote: boolean,
   worktreeCheckouts: ReadonlyMap<string, string>,
-): BranchInfo[] {
+  executor: GitExecutor,
+): Promise<BranchInfo[]> {
   const branches: BranchInfo[] = [];
   for (const line of output.trim().split("\n")) {
     if (!line.trim()) continue;
@@ -115,7 +122,7 @@ function parseBranchOutput(
         ? `refs/remotes/${upstreamRemote}/${upstreamBranchName}`
         : fields[3]?.trim();
     const counts = !isRemote && hasUpstream && upstreamTrackingRef
-      ? await resolveAheadBehind(this.executor, fullRef, upstreamTrackingRef, aheadBehind)
+      ? await resolveAheadBehind(executor, fullRef, upstreamTrackingRef, aheadBehind)
       : aheadBehind;
     const { ahead, behind } = counts;
     branches.push({
