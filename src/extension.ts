@@ -819,7 +819,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const force = params.force as boolean | undefined;
     return withProgress(messageRouter, ctx.repoId, async () => {
       const autoLeasePush =
-        force === undefined && (await gitService.requiresLeasePush(branchName));
+        force !== true && (await gitService.requiresLeasePush(branchName));
       await gitService.push(branchName, force ?? autoLeasePush);
       if (autoLeasePush || force === true) {
         await gitService.clearLeasePushMarker(branchName);
