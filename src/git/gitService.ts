@@ -955,11 +955,25 @@ export class GitService {
   }
 
   async pullRebase(branchName?: string): Promise<void> {
+    const currentBranch = await this.getCurrentBranch();
+    const targetBranch = branchName || currentBranch || undefined;
+    const upstream = currentBranch
+      ? await this.getBranchUpstream(currentBranch)
+      : null;
+    const upstreamSha = upstream
+      ? await this.execGit(["rev-parse", "--verify", upstream.remoteRef]).catch(() => "")
+      : "";
     const args = ["pull", "--rebase", "--autostash"];
-    if (branchName) {
-      args.push("origin", branchName);
+    if (targetBranch) {
+      const remote = upstream?.remote || (currentBranch ? await this.getDefaultRemote(currentBranch) : "origin");
+      args.push(remote, targetBranch);
     }
     await this.execGit(args);
+    if (currentBranch && upstream && upstreamSha.trim()) {
+      if (!(await this.isAncestor(upstreamSha.trim(), currentBranch))) {
+        await this.markBranchForLeasePush(currentBranch);
+      }
+    }
     this.invalidateCache();
   }
 
