@@ -39,6 +39,8 @@ import type {
 import { useBranchOverlay } from "./state/useBranchOverlay";
 import { useBranchTreeState } from "./state/useBranchTreeState";
 
+const BRANCH_STATUS_REFRESH_INTERVAL_MS = 5_000;
+
 export interface BranchTreeProps {
   headerAction?: React.ReactNode;
   onTogglePanel?: () => void;
@@ -57,6 +59,7 @@ export function BranchTree({ onTogglePanel }: BranchTreeProps = {}) {
   const requestFromSurface = useGitLogStore(
     (state) => state.requestFromSurface,
   );
+  const refreshBranches = useGitLogStore((state) => state.refreshBranches);
   const showTags = useGitLogStore((state) => state.showTags);
   const singleClickAction = useGitLogStore((state) => state.singleClickAction);
   const branchGroupByDirectory = useGitLogStore(
@@ -68,6 +71,14 @@ export function BranchTree({ onTogglePanel }: BranchTreeProps = {}) {
     useState<string | null>(null);
   const currentBranchRowSelected =
     activeRepoId !== null && currentBranchRowSelectedRepoId === activeRepoId;
+
+  useEffect(() => {
+    if (!activeRepoId) return;
+    const interval = setInterval(() => {
+      void refreshBranches();
+    }, BRANCH_STATUS_REFRESH_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [activeRepoId, refreshBranches]);
 
   const favoriteRefs = useMemo(
     () =>
