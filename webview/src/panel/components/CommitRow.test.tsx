@@ -195,5 +195,4 @@ describe("CommitRow reachability styling", () => {
       getByText("origin & main, origin & feature/example"),
     ).toBeTruthy();
   });
-
 });
