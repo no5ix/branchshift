@@ -20,7 +20,6 @@ const items: BranchActionMenuItem[] = [
 ];
 
 describe("BranchContextMenu", () => {
-
   it("sizes the branch menu to its longest item without stretching across the panel", () => {
     const view = render(
       <BranchContextMenu
