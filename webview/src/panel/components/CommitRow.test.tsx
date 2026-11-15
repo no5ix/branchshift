@@ -161,4 +161,39 @@ describe("CommitRow reachability styling", () => {
       getByText("origin & main, origin & fix/picker-card-hover-highlight"),
     ).toBeTruthy();
   });
+  it("puts main refs before other branches at the same commit", () => {
+    const commit = {
+      hash: "main-first",
+      shortHash: "mainfirst",
+      parents: [],
+      authorName: "Ada",
+      authorEmail: "ada@example.com",
+      authorDate: "2026-07-18T00:00:00.000Z",
+      subject: "Main and feature refs",
+      body: "",
+      refs: [
+        { type: "branch" as const, name: "feature/example" },
+        { type: "remote-branch" as const, name: "origin/feature/example" },
+        { type: "branch" as const, name: "main" },
+        { type: "remote-branch" as const, name: "origin/main" },
+      ],
+    };
+
+    const { getByText } = render(
+      <CommitRow
+        commit={commit}
+        lane={{ column: 0, color: 0, lines: [] }}
+        rowMaxColumn={0}
+        columnWidths={{ author: 100, date: 130, hash: 70 }}
+        visibleColumns={{ author: true, date: true, hash: true }}
+        onCommitClick={() => {}}
+      />,
+      { wrapper: StoreWrapper },
+    );
+
+    expect(
+      getByText("origin & main, origin & feature/example"),
+    ).toBeTruthy();
+  });
+
 });
