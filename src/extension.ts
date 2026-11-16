@@ -722,6 +722,56 @@ export async function activate(context: vscode.ExtensionContext) {
     return { confirmed: result === confirmLabel };
   });
 
+  messageRouter.handle("showBranchDeleteConfirmation", async (params) => {
+    const localNames = Array.isArray(params.localNames)
+      ? params.localNames.filter((name): name is string => typeof name === "string")
+      : [];
+    const remoteNames = Array.isArray(params.remoteNames)
+      ? params.remoteNames.filter((name): name is string => typeof name === "string")
+      : [];
+    const selectionCount =
+      typeof params.selectionCount === "number" ? params.selectionCount : 1;
+    const confirmLabel =
+      typeof params.confirmLabel === "string"
+        ? params.confirmLabel
+        : "Delete branches";
+
+    const items: vscode.QuickPickItem[] = [
+      {
+        label: "$(trash) Continue to confirmation",
+        description: "Review the branch list below, then select this item",
+      },
+      { label: "Local branches", kind: vscode.QuickPickItemKind.Separator },
+      ...(localNames.length > 0
+        ? localNames.map((name) => ({ label: name }))
+        : [{ label: "(none found)", description: "No local branches", alwaysShow: true }]),
+      { label: "Remote branches", kind: vscode.QuickPickItemKind.Separator },
+      ...(remoteNames.length > 0
+        ? remoteNames.map((name) => ({ label: name }))
+        : [{ label: "(none found)", description: "No remote branches", alwaysShow: true }]),
+    ];
+
+    const selected = await vscode.window.showQuickPick(items, {
+      title: `Review branches to delete · ${selectionCount} selected`,
+      placeHolder: "Scroll through the complete list; select “Continue to confirmation” when ready",
+      ignoreFocusOut: true,
+      matchOnDescription: true,
+    });
+    if (selected?.label !== "$(trash) Continue to confirmation") {
+      return { confirmed: false };
+    }
+
+    const summary =
+      `Delete ${selectionCount} selected ${selectionCount === 1 ? "branch" : "branches"}?\\n\\n` +
+      `Local refs: ${localNames.length}\\nRemote refs: ${remoteNames.length}`;
+    const result = await vscode.window.showWarningMessage(
+      summary,
+      { modal: true },
+      confirmLabel,
+    );
+    return { confirmed: result === confirmLabel };
+  });
+
   messageRouter.handle("showErrorNotification", async (params) => {
     const message = params.message as string;
     void vscode.window.showErrorMessage(message);
