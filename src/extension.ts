@@ -779,8 +779,8 @@ export async function activate(context: vscode.ExtensionContext) {
     }
 
     const summary =
-      `Delete ${selectionCount} selected ${selectionCount === 1 ? "branch" : "branches"}?\\n\\n` +
-      `Local refs: ${localNames.length}\\nRemote refs: ${remoteNames.length}`;
+      `Delete ${selectionCount} selected ${selectionCount === 1 ? "branch" : "branches"}?\n\n` +
+      `Local refs: ${localNames.length}\nRemote refs: ${remoteNames.length}`;
     const result = await vscode.window.showWarningMessage(
       summary,
       { modal: true },
