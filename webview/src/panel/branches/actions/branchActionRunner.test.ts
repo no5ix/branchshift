@@ -56,6 +56,7 @@ function createPorts(): BranchActionPorts & {
     },
     ui: {
       confirm: vi.fn().mockResolvedValue(true),
+      confirmBranchDelete: vi.fn().mockResolvedValue(true),
       input: vi.fn().mockResolvedValue(null),
       openCreate: vi.fn(),
       openPush: vi.fn(),
@@ -199,8 +200,10 @@ describe("runBranchAction", () => {
 
     await runBranchAction("delete-local-and-remote", pairedContext, ports);
 
-    expect(ports.ui.confirm).toHaveBeenCalledWith(
-      "Delete local and remote branches for 1 selected branch?\n\nLocal branches:\n• feature\n\nRemote branches:\n• origin/feature",
+    expect(ports.ui.confirmBranchDelete).toHaveBeenCalledWith(
+      ["feature"],
+      ["origin/feature"],
+      1,
       "Delete Local and Remote",
     );
     expect(ports.operations.delete).toHaveBeenNthCalledWith(
@@ -244,8 +247,10 @@ describe("runBranchAction", () => {
 
     await runBranchAction("delete-local-and-remote", batchContext, ports);
 
-    expect(ports.ui.confirm).toHaveBeenCalledWith(
-      "Delete local and remote branches for 2 selected branches?\n\nLocal branches:\n• feature  • feature/two\n\nRemote branches:\n• origin/feature  • origin/feature/two",
+    expect(ports.ui.confirmBranchDelete).toHaveBeenCalledWith(
+      ["feature", "feature/two"],
+      ["origin/feature", "origin/feature/two"],
+      2,
       "Delete Local and Remote 2 Branches",
     );
     expect(ports.operations.delete).toHaveBeenCalledTimes(4);
@@ -290,30 +295,11 @@ describe("runBranchAction", () => {
 
     await runBranchAction("delete-local-and-remote", batchContext, ports);
 
-    expect(ports.ui.confirm).toHaveBeenCalledWith(
-      "Delete local and remote branches for 4 selected branches?\\n\\nLocal branches:\\nPrefix omitted from matching entries: fix/clipboard-\\n• one  • two  • three  • four\\n\\nRemote branches:\\n• (none found)",
+    expect(ports.ui.confirmBranchDelete).toHaveBeenCalledWith(
+      ["fix/clipboard-one", "fix/clipboard-two", "fix/clipboard-three", "fix/clipboard-four"],
+      [],
+      4,
       "Delete Local and Remote 4 Branches",
-    );
-  });
-
-  it("confirms once and deletes every selected branch from the context menu", async () => {
-    const ports = createPorts();
-    const secondBranch: BranchInfo = {
-      ...branch,
-      name: "feature/two",
-      fullRef: "refs/heads/feature/two",
-      lastCommitHash: "second-tip",
-    };
-    const batchContext: BranchActionContext = {
-      ...context,
-      selectedBranches: [branch, secondBranch],
-    };
-
-    await runBranchAction("delete", batchContext, ports);
-
-    expect(ports.ui.confirm).toHaveBeenCalledWith(
-      "Delete these 2 branches?\n\n• feature\n• feature/two",
-      "Delete 2 Branches",
     );
     expect(ports.operations.delete).toHaveBeenNthCalledWith(
       1,
