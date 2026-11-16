@@ -23,6 +23,7 @@ export type RepoResolver = (
 const REPO_AGNOSTIC_COMMANDS = new Set<CommandType>([
   "showInputBox",
   "showConfirmMessage",
+  "showBranchDeleteConfirmation",
   "showErrorNotification",
   "showInfoNotification",
   "copyToClipboard",
