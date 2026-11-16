@@ -374,7 +374,12 @@ export function BranchTree({ onTogglePanel }: BranchTreeProps = {}) {
         )) as { confirmed?: boolean } | undefined;
         return result?.confirmed === true;
       },
-      async confirmBranchDelete(localNames, remoteNames, selectionCount, confirmLabel) {
+      async confirmBranchDelete(
+        localNames,
+        remoteNames,
+        selectionCount,
+        confirmLabel,
+      ) {
         const result = (await requestFromSurface(
           "showBranchDeleteConfirmation",
           { localNames, remoteNames, selectionCount, confirmLabel },
