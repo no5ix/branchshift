@@ -10,6 +10,12 @@ const BRANCH_NOT_FULLY_MERGED = "BRANCH_NOT_FULLY_MERGED";
 
 export interface BranchActionUi {
   confirm(message: string, confirmLabel: string): Promise<boolean>;
+  confirmBranchDelete(
+    localNames: string[],
+    remoteNames: string[],
+    selectionCount: number,
+    confirmLabel: string,
+  ): Promise<boolean>;
   input(prompt: string, value: string): Promise<string | null>;
   openCreate(
     repoId: string,
@@ -166,75 +172,13 @@ export async function runBranchAction(
       const remoteNames = branchesToDelete
         .filter((candidate) => candidate.isRemote)
         .map((candidate) => candidate.name);
-      const formatColumns = (names: string[]): string => {
-        if (names.length === 0) return "• (none found)";
-
-        // Keep the native VS Code confirmation compact by laying out six
-        // columns and moving repeated branch prefixes into a single legend.
-        const prefixCounts = new Map<string, number>();
-        for (const name of names) {
-          for (
-            let index = name.indexOf("/");
-            index >= 0;
-            index = name.indexOf("/", index + 1)
-          ) {
-            const prefix = name.slice(0, index + 1);
-            if (prefix.length >= 5) {
-              prefixCounts.set(prefix, (prefixCounts.get(prefix) ?? 0) + 1);
-            }
-          }
-          const dashIndex = name.indexOf("-", name.indexOf("/") + 1);
-          if (dashIndex >= 0) {
-            const prefix = name.slice(0, dashIndex + 1);
-            if (prefix.length >= 10) {
-              prefixCounts.set(prefix, (prefixCounts.get(prefix) ?? 0) + 1);
-            }
-          }
-        }
-        const sharedPrefix = [...prefixCounts.entries()]
-          .filter(
-            ([, count]) => count >= Math.max(2, Math.ceil(names.length / 2)),
-          )
-          .sort((a, b) => b[0].length - a[0].length)[0]?.[0];
-        const displayedNames = sharedPrefix
-          ? names.map((name) =>
-              name.startsWith(sharedPrefix)
-                ? name.slice(sharedPrefix.length)
-                : name,
-            )
-          : names;
-
-        const columnCount = 6;
-        const rowsPerColumn = Math.ceil(displayedNames.length / columnCount);
-        const rows: string[] = [];
-        for (let row = 0; row < rowsPerColumn; row += 1) {
-          const cells = Array.from({ length: columnCount }, (_, column) => {
-            const name = displayedNames[column * rowsPerColumn + row];
-            return name ? `• ${name}` : "";
-          }).filter(Boolean);
-          rows.push(cells.join("  "));
-        }
-        return [
-          ...(sharedPrefix
-            ? [`Prefix omitted from matching entries: ${sharedPrefix}`]
-            : []),
-          ...rows,
-        ].join("\n");
-      };
-      const localList = formatColumns(localNames);
-      const remoteList = formatColumns(remoteNames);
       const selectionCount = context.deleteSelectionCount ?? 1;
       const countLabel =
         selectionCount > 1 ? ` ${selectionCount} Branches` : "";
-      const branchNoun = selectionCount === 1 ? "branch" : "branches";
-      const sections = [
-        `Delete local and remote branches for ${selectionCount} selected ${branchNoun}?`,
-        "",
-        `Local branches:\n${localList}`,
-        `Remote branches:\n${remoteList}`,
-      ];
-      const confirmed = await ui.confirm(
-        sections.join("\n\n"),
+      const confirmed = await ui.confirmBranchDelete(
+        localNames,
+        remoteNames,
+        selectionCount,
         `Delete Local and Remote${countLabel}`,
       );
       if (!confirmed || !isActionCurrent(context, ui)) return;
