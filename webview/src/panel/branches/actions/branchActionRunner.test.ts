@@ -245,7 +245,7 @@ describe("runBranchAction", () => {
     await runBranchAction("delete-local-and-remote", batchContext, ports);
 
     expect(ports.ui.confirm).toHaveBeenCalledWith(
-      "Delete local and remote branches for 2 selected branches?\n\nLocal branches:\n• feature    • feature/two\n\nRemote branches:\n• origin/feature    • origin/feature/two",
+      "Delete local and remote branches for 2 selected branches?\n\nLocal branches:\n• feature  • feature/two\n\nRemote branches:\n• origin/feature  • origin/feature/two",
       "Delete Local and Remote 2 Branches",
     );
     expect(ports.operations.delete).toHaveBeenCalledTimes(4);
