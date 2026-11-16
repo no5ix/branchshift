@@ -163,6 +163,7 @@ export type CommandType =
   | "openFileAtRevision"
   | "copyToClipboard"
   | "showConfirmMessage"
+  | "showBranchDeleteConfirmation"
   | "showInputBox"
   | "showErrorNotification"
   | "showInfoNotification"
