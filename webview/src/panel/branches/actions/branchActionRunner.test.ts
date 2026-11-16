@@ -280,7 +280,7 @@ describe("runBranchAction", () => {
     );
   });
 
-  it("compresses repeated branch prefixes so long confirmations fit", async () => {
+  it("passes full branch names to the scrollable delete review", async () => {
     const ports = createPorts();
     const branches = ["one", "two", "three", "four"].map((suffix) => ({
       ...branch,
