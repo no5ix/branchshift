@@ -168,16 +168,44 @@ export async function runBranchAction(
         .map((candidate) => candidate.name);
       const formatColumns = (names: string[]): string => {
         if (names.length === 0) return "• (none found)";
-        const columnSize = Math.ceil(names.length / 2);
-        const leftColumn = names.slice(0, columnSize);
-        const rightColumn = names.slice(columnSize);
-        return leftColumn
-          .map((name, index) =>
-            rightColumn[index]
-              ? `• ${name}    • ${rightColumn[index]}`
-              : `• ${name}`,
-          )
-          .join("\n");
+
+        // Native VS Code confirmation messages have a narrow fixed width.
+        // Remove a frequently shared branch prefix before laying out two
+        // columns, then show the prefix once so every full name is recoverable.
+        const prefixCounts = new Map<string, number>();
+        for (const name of names) {
+          for (let index = name.indexOf("/"); index >= 0; index = name.indexOf("/", index + 1)) {
+            const prefix = name.slice(0, index + 1);
+            if (prefix.length >= 5) {
+              prefixCounts.set(prefix, (prefixCounts.get(prefix) ?? 0) + 1);
+            }
+          }
+          const dashIndex = name.indexOf("-", name.indexOf("/") + 1);
+          if (dashIndex >= 0) {
+            const prefix = name.slice(0, dashIndex + 1);
+            if (prefix.length >= 10) {
+              prefixCounts.set(prefix, (prefixCounts.get(prefix) ?? 0) + 1);
+            }
+          }
+        }
+        const sharedPrefix = [...prefixCounts.entries()]
+          .filter(([, count]) => count >= Math.max(2, Math.ceil(names.length / 2)))
+          .sort((a, b) => b[0].length - a[0].length)[0]?.[0];
+        const displayedNames = sharedPrefix
+          ? names.map((name) => name.startsWith(sharedPrefix) ? name.slice(sharedPrefix.length) : name)
+          : names;
+        const columnSize = Math.ceil(displayedNames.length / 2);
+        const leftColumn = displayedNames.slice(0, columnSize);
+        const rightColumn = displayedNames.slice(columnSize);
+        const rows = leftColumn.map((name, index) =>
+          rightColumn[index]
+            ? `• ${name}    • ${rightColumn[index]}`
+            : `• ${name}`,
+        );
+        return [
+          ...(sharedPrefix ? [`Prefix omitted from matching entries: ${sharedPrefix}`] : []),
+          ...rows,
+        ].join("\n");
       };
       const localList = formatColumns(localNames);
       const remoteList = formatColumns(remoteNames);
