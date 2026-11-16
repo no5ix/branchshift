@@ -724,10 +724,14 @@ export async function activate(context: vscode.ExtensionContext) {
 
   messageRouter.handle("showBranchDeleteConfirmation", async (params) => {
     const localNames = Array.isArray(params.localNames)
-      ? params.localNames.filter((name): name is string => typeof name === "string")
+      ? params.localNames.filter(
+          (name): name is string => typeof name === "string",
+        )
       : [];
     const remoteNames = Array.isArray(params.remoteNames)
-      ? params.remoteNames.filter((name): name is string => typeof name === "string")
+      ? params.remoteNames.filter(
+          (name): name is string => typeof name === "string",
+        )
       : [];
     const selectionCount =
       typeof params.selectionCount === "number" ? params.selectionCount : 1;
@@ -744,16 +748,29 @@ export async function activate(context: vscode.ExtensionContext) {
       { label: "Local branches", kind: vscode.QuickPickItemKind.Separator },
       ...(localNames.length > 0
         ? localNames.map((name) => ({ label: name }))
-        : [{ label: "(none found)", description: "No local branches", alwaysShow: true }]),
+        : [
+            {
+              label: "(none found)",
+              description: "No local branches",
+              alwaysShow: true,
+            },
+          ]),
       { label: "Remote branches", kind: vscode.QuickPickItemKind.Separator },
       ...(remoteNames.length > 0
         ? remoteNames.map((name) => ({ label: name }))
-        : [{ label: "(none found)", description: "No remote branches", alwaysShow: true }]),
+        : [
+            {
+              label: "(none found)",
+              description: "No remote branches",
+              alwaysShow: true,
+            },
+          ]),
     ];
 
     const selected = await vscode.window.showQuickPick(items, {
       title: `Review branches to delete · ${selectionCount} selected`,
-      placeHolder: "Scroll through the complete list; select “Continue to confirmation” when ready",
+      placeHolder:
+        "Scroll through the complete list; select “Continue to confirmation” when ready",
       ignoreFocusOut: true,
       matchOnDescription: true,
     });
