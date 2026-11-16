@@ -291,7 +291,7 @@ describe("runBranchAction", () => {
     await runBranchAction("delete-local-and-remote", batchContext, ports);
 
     expect(ports.ui.confirm).toHaveBeenCalledWith(
-      "Delete local and remote branches for 4 selected branches?\\n\\nLocal branches:\\nPrefix omitted from matching entries: fix/clipboard-\\n• one    • three\\n• two    • four\\n\\nRemote branches:\\n• (none found)",
+      "Delete local and remote branches for 4 selected branches?\\n\\nLocal branches:\\nPrefix omitted from matching entries: fix/clipboard-\\n• one  • two  • three  • four\\n\\nRemote branches:\\n• (none found)",
       "Delete Local and Remote 4 Branches",
     );
   });
