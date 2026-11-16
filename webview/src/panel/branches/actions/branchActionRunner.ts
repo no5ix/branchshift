@@ -169,9 +169,8 @@ export async function runBranchAction(
       const formatColumns = (names: string[]): string => {
         if (names.length === 0) return "• (none found)";
 
-        // Native VS Code confirmation messages have a narrow fixed width.
-        // Remove a frequently shared branch prefix before laying out two
-        // columns, then show the prefix once so every full name is recoverable.
+        // Keep the native VS Code confirmation compact by laying out six
+        // columns and moving repeated branch prefixes into a single legend.
         const prefixCounts = new Map<string, number>();
         for (const name of names) {
           for (
@@ -204,14 +203,17 @@ export async function runBranchAction(
                 : name,
             )
           : names;
-        const columnSize = Math.ceil(displayedNames.length / 2);
-        const leftColumn = displayedNames.slice(0, columnSize);
-        const rightColumn = displayedNames.slice(columnSize);
-        const rows = leftColumn.map((name, index) =>
-          rightColumn[index]
-            ? `• ${name}    • ${rightColumn[index]}`
-            : `• ${name}`,
-        );
+
+        const columnCount = 6;
+        const rowsPerColumn = Math.ceil(displayedNames.length / columnCount);
+        const rows: string[] = [];
+        for (let row = 0; row < rowsPerColumn; row += 1) {
+          const cells = Array.from({ length: columnCount }, (_, column) => {
+            const name = displayedNames[column * rowsPerColumn + row];
+            return name ? `• ${name}` : "";
+          }).filter(Boolean);
+          rows.push(cells.join("  "));
+        }
         return [
           ...(sharedPrefix
             ? [`Prefix omitted from matching entries: ${sharedPrefix}`]
