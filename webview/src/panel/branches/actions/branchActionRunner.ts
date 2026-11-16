@@ -193,7 +193,10 @@ export async function runBranchAction(
           }
         }
         const sharedPrefix = [...prefixCounts.entries()]
-          .filter(([, count]) => count >= Math.max(2, Math.ceil(names.length / 2)))
+          .filter(
+            ([, count]) =>
+              count >= Math.max(2, Math.ceil(names.length / 2)),
+          )
           .sort((a, b) => b[0].length - a[0].length)[0]?.[0];
         const displayedNames = sharedPrefix
           ? names.map((name) =>
@@ -211,7 +214,9 @@ export async function runBranchAction(
             : `• ${name}`,
         );
         return [
-          ...(sharedPrefix ? [`Prefix omitted from matching entries: ${sharedPrefix}`] : []),
+          ...(sharedPrefix
+            ? [`Prefix omitted from matching entries: ${sharedPrefix}`]
+            : []),
           ...rows,
         ].join("\n");
       };
