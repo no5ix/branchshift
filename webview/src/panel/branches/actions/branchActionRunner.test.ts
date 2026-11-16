@@ -275,6 +275,27 @@ describe("runBranchAction", () => {
     );
   });
 
+  it("compresses repeated branch prefixes so long confirmations fit", async () => {
+    const ports = createPorts();
+    const branches = ["one", "two", "three", "four"].map((suffix) => ({
+      ...branch,
+      name: `fix/clipboard-${suffix}`,
+      fullRef: `refs/heads/fix/clipboard-${suffix}`,
+    }));
+    const batchContext: BranchActionContext = {
+      ...context,
+      deleteTargets: branches,
+      deleteSelectionCount: 4,
+    };
+
+    await runBranchAction("delete-local-and-remote", batchContext, ports);
+
+    expect(ports.ui.confirm).toHaveBeenCalledWith(
+      "Delete local and remote branches for 4 selected branches?\\n\\nLocal branches:\\nPrefix omitted from matching entries: fix/clipboard-\\n• one    • three\\n• two    • four\\n\\nRemote branches:\\n• (none found)",
+      "Delete Local and Remote 4 Branches",
+    );
+  });
+
   it("confirms once and deletes every selected branch from the context menu", async () => {
     const ports = createPorts();
     const secondBranch: BranchInfo = {
