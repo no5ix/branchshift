@@ -166,14 +166,21 @@ export async function runBranchAction(
       const remoteNames = branchesToDelete
         .filter((candidate) => candidate.isRemote)
         .map((candidate) => candidate.name);
-      const localList =
-        localNames.length > 0
-          ? localNames.map((name) => `• ${name}`).join("\n")
-          : "• (none found)";
-      const remoteList =
-        remoteNames.length > 0
-          ? remoteNames.map((name) => `• ${name}`).join("\n")
-          : "• (none found)";
+      const formatColumns = (names: string[]): string => {
+        if (names.length === 0) return "• (none found)";
+        const columnSize = Math.ceil(names.length / 2);
+        const leftColumn = names.slice(0, columnSize);
+        const rightColumn = names.slice(columnSize);
+        return leftColumn
+          .map((name, index) =>
+            rightColumn[index]
+              ? `• ${name}    • ${rightColumn[index]}`
+              : `• ${name}`,
+          )
+          .join("\n");
+      };
+      const localList = formatColumns(localNames);
+      const remoteList = formatColumns(remoteNames);
       const selectionCount = context.deleteSelectionCount ?? 1;
       const countLabel =
         selectionCount > 1 ? ` ${selectionCount} Branches` : "";
