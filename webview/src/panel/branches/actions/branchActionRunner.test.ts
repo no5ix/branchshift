@@ -296,7 +296,12 @@ describe("runBranchAction", () => {
     await runBranchAction("delete-local-and-remote", batchContext, ports);
 
     expect(ports.ui.confirmBranchDelete).toHaveBeenCalledWith(
-      ["fix/clipboard-one", "fix/clipboard-two", "fix/clipboard-three", "fix/clipboard-four"],
+      [
+        "fix/clipboard-one",
+        "fix/clipboard-two",
+        "fix/clipboard-three",
+        "fix/clipboard-four",
+      ],
       [],
       4,
       "Delete Local and Remote 4 Branches",
