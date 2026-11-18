@@ -109,7 +109,7 @@ export function BranchContextMenu({
               minWidth: 160,
               maxWidth: "calc(100vw - 8px)",
               boxSizing: "border-box",
-              maxHeight: "calc(100vh - 8px)",
+              maxHeight: `calc(100vh - ${position.top}px - 8px)`,
               overflowY: "auto",
               boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
             }
