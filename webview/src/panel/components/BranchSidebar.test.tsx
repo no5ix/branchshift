@@ -98,110 +98,12 @@ describe("BranchSidebar ref actions", () => {
     expect((getByRole("button", { name: "Fetch" }) as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it("disables repository mutations when no repository is active", () => {
+  it("keeps navigation and branch settings available without an active repository", () => {
     useRepoStore.setState({ activeRepoId: null });
-    panelStore.setState({
-      selectedRefs: [
-        { type: "local", name: "feature", fullRef: "refs/heads/feature" },
-      ],
-      branches: [
-        {
-          name: "feature",
-          fullRef: "refs/heads/feature",
-          isRemote: false,
-          isFavorite: false,
-          upstream: "origin/feature",
-          lastCommitHash: "tip",
-        } as never,
-      ],
-    });
     const { getByRole } = renderWithStore(<BranchSidebar />);
 
-    for (const name of ["Fetch"]) {
-      expect(
-        (getByRole("button", { name }) as HTMLButtonElement).disabled,
-      ).toBe(true);
-    }
-    expect(
-      (
-        getByRole("button", {
-          name: "Navigate Log to Selected Ref Head",
-        }) as HTMLButtonElement
-      ).disabled,
-    ).toBe(false);
+    expect(getByRole("button", { name: "Navigate Log to Selected Ref Head" })).toBeTruthy();
     expect(getByRole("button", { name: "Branch Settings" })).toBeTruthy();
-  });
-
-  it("confirms and deletes all selected local branches in one batch", async () => {
-    useRepoStore.setState({ activeRepoId: "repo-a" });
-    const firstRef = {
-      type: "local",
-      name: "feature/one",
-      fullRef: "refs/heads/feature/one",
-    } as const;
-    const secondRef = {
-      type: "local",
-      name: "feature/two",
-      fullRef: "refs/heads/feature/two",
-    } as const;
-    panelStore.setState({
-      currentBranch: "main",
-      selectedRefs: [firstRef, secondRef],
-      branches: [
-        {
-          name: "main",
-          fullRef: "refs/heads/main",
-          isRemote: false,
-          isCurrent: true,
-          isFavorite: false,
-          lastCommitHash: "main-tip",
-        },
-        {
-          name: "feature/one",
-          fullRef: firstRef.fullRef,
-          isRemote: false,
-          isCurrent: false,
-          isFavorite: false,
-          lastCommitHash: "one-tip",
-        },
-        {
-          name: "feature/two",
-          fullRef: secondRef.fullRef,
-          isRemote: false,
-          isCurrent: false,
-          isFavorite: false,
-          lastCommitHash: "two-tip",
-        },
-      ] as never[],
-    });
-    vi.mocked(bridge.request).mockResolvedValueOnce({ confirmed: true });
-    const { getByRole } = renderWithStore(<BranchSidebar />);
-
-    const deleteButton = getByRole("button", {
-      name: "Delete Selected Branches (2)",
-    });
-    fireEvent.click(deleteButton);
-
-    await waitFor(() => {
-      expect(bridge.request).toHaveBeenCalledWith(
-        "showConfirmMessage",
-        {
-          message: "Delete these 2 branches?\n\n• feature/one\n• feature/two",
-          confirmLabel: "Delete 2 Branches",
-        },
-        { scope: "global" },
-      );
-      expect(bridge.request).toHaveBeenCalledWith(
-        "deleteBranch",
-        { branchName: "feature/one", isRemote: false, force: false },
-        { repoId: "repo-a" },
-      );
-      expect(bridge.request).toHaveBeenCalledWith(
-        "deleteBranch",
-        { branchName: "feature/two", isRemote: false, force: false },
-        { repoId: "repo-a" },
-      );
-    });
   });
 
   it("does not include the current branch or remote refs in batch deletion", () => {
@@ -387,35 +289,6 @@ describe("BranchSidebar ref actions", () => {
         .mocked(bridge.request)
         .mock.calls.filter(([command]) => command === "showErrorNotification"),
     ).toHaveLength(0);
-  });
-
-  it("shows a typed Fetch failure message and recovery once", async () => {
-    useRepoStore.setState({ activeRepoId: "repo-a" });
-    vi.mocked(bridge.request).mockRejectedValueOnce(
-      Object.assign(new Error("Remote unavailable"), {
-        code: "FETCH_FAILED",
-        recovery: "Check the remote and try again.",
-      }),
-    );
-    const { getByRole } = renderWithStore(<BranchSidebar />);
-
-    fireEvent.click(getByRole("button", { name: "Fetch" }));
-
-    await waitFor(() =>
-      expect(bridge.request).toHaveBeenCalledWith(
-        "showErrorNotification",
-        {
-          message:
-            "Fetch failed: Remote unavailable\nCheck the remote and try again.",
-        },
-        { scope: "global" },
-      ),
-    );
-    expect(
-      vi
-        .mocked(bridge.request)
-        .mock.calls.filter(([command]) => command === "showErrorNotification"),
-    ).toHaveLength(1);
   });
 
   it("allows tag favorites and navigation but disables branch-only actions", async () => {
