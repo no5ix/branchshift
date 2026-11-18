@@ -33,15 +33,8 @@ export function BranchContextMenu({
       const menu = menuRef.current;
       if (!menu) return;
       const rect = menu.getBoundingClientRect();
-      let top = y;
+      const top = Math.max(4, Math.min(y, window.innerHeight - 4));
       let left = x;
-      if (top + rect.height > window.innerHeight) {
-        const above = y - rect.height;
-        top =
-          above >= 4
-            ? above
-            : Math.max(4, window.innerHeight - rect.height - 4);
-      }
       if (left + rect.width > window.innerWidth) {
         left = Math.max(4, window.innerWidth - rect.width - 4);
       }
@@ -98,7 +91,7 @@ export function BranchContextMenu({
               top: position.top,
               left: position.left,
               zIndex: 9999,
-              maxHeight: "calc(100vh - 8px)",
+              maxHeight: `calc(100vh - ${position.top}px - 8px)`,
               overflowY: "auto",
             }
           : {
