@@ -544,29 +544,9 @@ export function BranchTree({ onTogglePanel }: BranchTreeProps = {}) {
     };
   }, [treeState.collapseAll, treeState.expandAll]);
 
-  const handleNewBranch = useCallback(() => {
-    if (!activeRepoId) return;
-    const currentEntry = localEntries.find((entry) => entry.isCurrent);
-    if (currentEntry) {
-      overlayController.openCreate({
-        sourceRefKey: refIdentityKey(currentEntry.ref),
-        startPoint: "HEAD",
-        defaultName: "",
-      });
-      return;
-    }
-    overlayController.openCreate({
-      startPoint: "HEAD",
-      defaultName: "",
-    });
-  }, [activeRepoId, localEntries, overlayController.openCreate]);
-
   return (
     <div style={{ height: "100%", display: "flex" }}>
-      <BranchSidebar
-        onTogglePanel={onTogglePanel}
-        onNewBranch={handleNewBranch}
-      />
+      <BranchSidebar onTogglePanel={onTogglePanel} />
       <BranchTreeView
         localSnapshot={localSnapshot}
         remoteSnapshot={remoteSnapshot}
