@@ -78,98 +78,24 @@ describe("BranchSidebar ref actions", () => {
     expect(flattenedIcon).not.toBe(groupedIcon);
   });
 
-  it("binds sidebar mutations to the repository active when each action is clicked", async () => {
+  it("does not expose branch creation, deletion, update, or favorite actions in the sidebar", () => {
     useRepoStore.setState({ activeRepoId: "repo-a" });
-    const ref = {
-      type: "local",
-      name: "feature",
-      fullRef: "refs/heads/feature",
-    } as const;
-    panelStore.setState({
-      selectedRefs: [ref],
-      branches: [
-        {
-          name: "feature",
-          fullRef: "refs/heads/feature",
-          isRemote: false,
-          isFavorite: false,
-          upstream: "origin/feature",
-          lastCommitHash: "tip",
-        } as never,
-      ],
-    });
-    const { getByRole } = renderWithStore(<BranchSidebar />);
+    const { queryByRole } = renderWithStore(<BranchSidebar />);
 
-    fireEvent.click(getByRole("button", { name: "Update Selected" }));
-    fireEvent.click(getByRole("button", { name: "Mark/Unmark As Favorite" }));
-    fireEvent.click(getByRole("button", { name: "Fetch" }));
-    fireEvent.click(getByRole("button", { name: "New Branch" }));
-    fireEvent.click(getByRole("button", { name: "Delete Branch" }));
-
-    await waitFor(() => {
-      expect(bridge.request).toHaveBeenCalledWith(
-        "updateBranch",
-        { branchName: "feature" },
-        { repoId: "repo-a" },
-      );
-      expect(bridge.request).toHaveBeenCalledWith(
-        "setFavorite",
-        { ref, favorite: true },
-        { repoId: "repo-a" },
-      );
-      expect(bridge.request).toHaveBeenCalledWith("fetchAll", undefined, {
-        repoId: "repo-a",
-      });
-      expect(bridge.request).toHaveBeenCalledWith(
-        "createBranchPrompt",
-        {},
-        { repoId: "repo-a" },
-      );
-      expect(bridge.request).toHaveBeenCalledWith(
-        "deleteBranchPrompt",
-        {
-          branchName: "feature",
-        },
-        { repoId: "repo-a" },
-      );
-    });
-    await waitFor(
-      () => expect(panelStore.getState().operationInProgress).toBe(false),
-      { timeout: 2_000 },
-    );
+    for (const name of [
+      "New Branch",
+      "Update Selected",
+      "Delete Branch",
+      "Mark/Unmark As Favorite",
+    ]) {
+      expect(queryByRole("button", { name })).toBeNull();
+    }
   });
 
-  it("disables Update Selected when the local branch has no upstream", () => {
+  it("keeps Fetch available when a repository is active", () => {
     useRepoStore.setState({ activeRepoId: "repo-a" });
-    panelStore.setState({
-      selectedRefs: [
-        { type: "local", name: "feature", fullRef: "refs/heads/feature" },
-      ],
-      branches: [
-        {
-          name: "feature",
-          fullRef: "refs/heads/feature",
-          isRemote: false,
-          isFavorite: false,
-          lastCommitHash: "tip",
-        } as never,
-      ],
-    });
     const { getByRole } = renderWithStore(<BranchSidebar />);
-
-    const update = getByRole("button", {
-      name: "Update Selected",
-    }) as HTMLButtonElement;
-    expect(update.disabled).toBe(true);
-    expect(update.getAttribute("aria-description")).toBe(
-      "No upstream configured",
-    );
-    fireEvent.click(update);
-    expect(
-      vi
-        .mocked(bridge.request)
-        .mock.calls.some(([command]) => command === "updateBranch"),
-    ).toBe(false);
+    expect((getByRole("button", { name: "Fetch" }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it("disables repository mutations when no repository is active", () => {
@@ -191,13 +117,7 @@ describe("BranchSidebar ref actions", () => {
     });
     const { getByRole } = renderWithStore(<BranchSidebar />);
 
-    for (const name of [
-      "New Branch",
-      "Update Selected",
-      "Delete Branch",
-      "Fetch",
-      "Mark/Unmark As Favorite",
-    ]) {
+    for (const name of ["Fetch"]) {
       expect(
         (getByRole("button", { name }) as HTMLButtonElement).disabled,
       ).toBe(true);
