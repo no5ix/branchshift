@@ -28,21 +28,29 @@ export function BranchSidebar({
   const operations = useBranchOperations();
   const selectedRef = selectedRefs.length === 1 ? selectedRefs[0] : null;
   const selectedBranch = selectedRef
-    ? branches.find((branch) => branch.name === selectedRef.name &&
-        (branch.isRemote ? "remote" : "local") === selectedRef.type)
+    ? branches.find(
+        (branch) =>
+          branch.name === selectedRef.name &&
+          (branch.isRemote ? "remote" : "local") === selectedRef.type,
+      )
     : undefined;
-  const selectedTag = selectedRef?.type === "tag"
-    ? tags.find((tag) => tag.name === selectedRef.name)
-    : undefined;
-  const selectedTargetHash = selectedBranch?.lastCommitHash ?? selectedTag?.targetCommitHash;
+  const selectedTag =
+    selectedRef?.type === "tag"
+      ? tags.find((tag) => tag.name === selectedRef.name)
+      : undefined;
+  const selectedTargetHash =
+    selectedBranch?.lastCommitHash ?? selectedTag?.targetCommitHash;
   const latestSelectedRef = useRef(selectedRef);
   latestSelectedRef.current = selectedRef;
-  const isActionCurrent = useCallback((repoId: string, ref?: GitRefIdentity) => {
-    if (actionRepoId() !== repoId) return false;
-    if (!ref) return true;
-    const currentRef = latestSelectedRef.current;
-    return currentRef !== null && refKey(currentRef) === refKey(ref);
-  }, [actionRepoId]);
+  const isActionCurrent = useCallback(
+    (repoId: string, ref?: GitRefIdentity) => {
+      if (actionRepoId() !== repoId) return false;
+      if (!ref) return true;
+      const currentRef = latestSelectedRef.current;
+      return currentRef !== null && refKey(currentRef) === refKey(ref);
+    },
+    [actionRepoId],
+  );
 
   const handleFetch = useCallback(async () => {
     const repoId = actionRepoId();
@@ -90,16 +98,24 @@ export function BranchSidebar({
         </Tooltip>
       )}
       <Tooltip text="Fetch">
-        <button type="button" className="branch-sidebar-btn" aria-label="Fetch"
-          onClick={handleFetch} disabled={!actionRepoId()}>
+        <button
+          type="button"
+          className="branch-sidebar-btn"
+          aria-label="Fetch"
+          onClick={handleFetch}
+          disabled={!actionRepoId()}
+        >
           <IconFetch />
         </button>
       </Tooltip>
       <Tooltip text="Navigate Log to Selected Ref Head">
-        <button type="button" className="branch-sidebar-btn"
+        <button
+          type="button"
+          className="branch-sidebar-btn"
           aria-label="Navigate Log to Selected Ref Head"
           onClick={handleNavigateToHead}
-          disabled={!selectedRef || !selectedTargetHash}>
+          disabled={!selectedRef || !selectedTargetHash}
+        >
           <IconLocate />
         </button>
       </Tooltip>
