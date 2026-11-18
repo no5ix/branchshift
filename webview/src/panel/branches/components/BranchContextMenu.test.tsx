@@ -62,6 +62,50 @@ describe("BranchContextMenu", () => {
     expect(action.style.display).toBe("block");
     expect(action.style.boxSizing).toBe("border-box");
   });
+  it("moves the menu upward when its full content would extend below the viewport", () => {
+    const originalInnerHeight = window.innerHeight;
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 600,
+    });
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      callback(0);
+      return 1;
+    });
+    const scrollHeight = vi
+      .spyOn(HTMLElement.prototype, "scrollHeight", "get")
+      .mockReturnValue(500);
+
+    try {
+      const view = render(
+        <BranchContextMenu
+          x={20}
+          y={200}
+          name="feature/bottom"
+          items={items}
+          presentation="branch"
+          onAction={vi.fn()}
+          onClose={vi.fn()}
+        />,
+      );
+
+      expect((view.getByRole("menu") as HTMLElement).style.top).toBe("96px");
+    } finally {
+      scrollHeight.mockRestore();
+      vi.unstubAllGlobals();
+      Object.defineProperty(window, "innerHeight", {
+        configurable: true,
+        value: originalInnerHeight,
+      });
+      Object.defineProperty(window, "requestAnimationFrame", {
+        configurable: true,
+        writable: true,
+        value: originalRequestAnimationFrame,
+      });
+    }
+  });
+
   it("preserves the commit-menu class contract for tag presentation", () => {
     const view = render(
       <BranchContextMenu
