@@ -32,6 +32,7 @@ export type BranchActionId =
   | "delete-local-and-remote"
   | "update"
   | "push"
+  | "force-push"
   | "copy-branch-name";
 
 export type BranchActionMenuItem =
