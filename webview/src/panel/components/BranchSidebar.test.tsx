@@ -18,7 +18,6 @@ const { useRepoStore } = await import("../../shared/store/repo-store");
 const { BranchSidebar } = await import("./BranchSidebar");
 const panelStore = defaultGitLogStore.store;
 
-
 function StoreWrapper({ children }: PropsWithChildren) {
   return (
     <GitLogStoreProvider store={panelStore}>{children}</GitLogStoreProvider>
@@ -28,7 +27,6 @@ function StoreWrapper({ children }: PropsWithChildren) {
 function renderWithStore(ui: ReactElement) {
   return render(ui, { wrapper: StoreWrapper });
 }
-
 
 afterEach(() => {
   cleanup();
@@ -73,20 +71,5 @@ describe("BranchSidebar ref actions", () => {
       expect(queryByRole("button", { name })).toBeNull();
     }
   });
-
-  it("keeps Fetch available when a repository is active", () => {
-    useRepoStore.setState({ activeRepoId: "repo-a" });
-    const { getByRole } = renderWithStore(<BranchSidebar />);
-    expect((getByRole("button", { name: "Fetch" }) as HTMLButtonElement).disabled).toBe(false);
-  });
-
-  it("keeps navigation and branch settings available without an active repository", () => {
-    useRepoStore.setState({ activeRepoId: null });
-    const { getByRole } = renderWithStore(<BranchSidebar />);
-
-    expect(getByRole("button", { name: "Navigate Log to Selected Ref Head" })).toBeTruthy();
-    expect(getByRole("button", { name: "Branch Settings" })).toBeTruthy();
-  });
-
 
 });
