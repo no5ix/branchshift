@@ -71,5 +71,4 @@ describe("BranchSidebar ref actions", () => {
       expect(queryByRole("button", { name })).toBeNull();
     }
   });
-
 });
