@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type {
   BranchActionId,
   BranchActionMenuItem,
@@ -84,7 +85,7 @@ export function BranchContextMenu({
 
   if (items.length === 0) return null;
 
-  return (
+  return createPortal(
     <div
       ref={menuRef}
       role="menu"
@@ -205,6 +206,7 @@ export function BranchContextMenu({
           </button>
         ),
       )}
-    </div>
+    </div>,
+    document.body,
   );
 }
