@@ -58,6 +58,15 @@ describe("BranchSidebar ref actions", () => {
     expect(flattenedIcon).not.toBe(groupedIcon);
   });
 
+  it("keeps Fetch and Navigate to Ref Head available in the sidebar", () => {
+    const { getByRole } = renderWithStore(<BranchSidebar />);
+
+    expect(getByRole("button", { name: "Fetch" })).toBeTruthy();
+    expect(
+      getByRole("button", { name: "Navigate Log to Selected Ref Head" }),
+    ).toBeTruthy();
+  });
+
   it("does not expose branch creation, deletion, update, or favorite actions in the sidebar", () => {
     useRepoStore.setState({ activeRepoId: "repo-a" });
     const { queryByRole } = renderWithStore(<BranchSidebar />);
