@@ -7,10 +7,8 @@ import { useGitLogStore } from "../../shared/store/git-log-store-context";
 
 export function BranchSidebar({
   onTogglePanel,
-  onNewBranch,
 }: {
   onTogglePanel?: () => void;
-  onNewBranch?: () => void;
 } = {}) {
   const branchGroupByDirectory = useGitLogStore(
     (s) => s.branchGroupByDirectory,
@@ -40,17 +38,6 @@ export function BranchSidebar({
           </button>
         </Tooltip>
       )}
-      <Tooltip text="Navigate Log to Selected Ref Head">
-        <button
-          type="button"
-          className="branch-sidebar-btn"
-          aria-label="Navigate Log to Selected Ref Head"
-          onClick={handleNavigateToHead}
-          disabled={!selectedRef || !selectedTargetHash}
-        >
-          <IconLocate />
-        </button>
-      </Tooltip>
       <SettingsButton />
       <Tooltip
         text={branchGroupByDirectory ? "Flatten List" : "Group By Directory"}
