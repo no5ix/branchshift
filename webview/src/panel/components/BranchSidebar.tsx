@@ -21,199 +21,14 @@ export function BranchSidebar({
   onTogglePanel?: () => void;
   onNewBranch?: () => void;
 } = {}) {
-  const selectedRefs = useGitLogStore((s) => s.selectedRefs);
-  const currentBranch = useGitLogStore((s) => s.currentBranch);
-  const branches = useGitLogStore((s) => s.branches);
-  const tags = useGitLogStore((s) => s.tags);
   const actionRepoId = useGitLogStore((s) => s.actionRepoId);
   const requestFromSurface = useGitLogStore((s) => s.requestFromSurface);
-  const navigateToRef = useGitLogStore((s) => s.navigateToRef);
-  const operations = useBranchOperations();
-  const mutationRepoId = actionRepoId();
-  const selectedRef = selectedRefs.length === 1 ? selectedRefs[0] : null;
-  const selectedBranch = selectedRef
-    ? branches.find(
-        (branch) =>
-          branch.name === selectedRef.name &&
-          (branch.isRemote ? "remote" : "local") === selectedRef.type,
-      )
-    : undefined;
-  const selectedTag =
-    selectedRef?.type === "tag"
-      ? tags.find((tag) => tag.name === selectedRef.name)
-      : undefined;
-  const selectedLocalBranch =
-    selectedRef?.type === "local" ? selectedBranch : undefined;
-  const selectedFavorite =
-    selectedBranch?.isFavorite ?? selectedTag?.isFavorite;
-  const selectedTargetHash =
-    selectedBranch?.lastCommitHash ?? selectedTag?.targetCommitHash;
-  const selectedLocalBranches = selectedRefs
-    .filter((ref) => ref.type === "local")
-    .map((ref) =>
-      branches.find(
-        (branch) => !branch.isRemote && branch.fullRef === ref.fullRef,
-      ),
-    )
-    .filter(
-      (branch): branch is NonNullable<typeof branch> =>
-        branch !== undefined &&
-        !branch.isCurrent &&
-        branch.name !== currentBranch,
-    );
-  const latestSelectedRef = useRef(selectedRef);
-  latestSelectedRef.current = selectedRef;
-  const latestSelectedRefs = useRef(selectedRefs);
-  latestSelectedRefs.current = selectedRefs;
-  const latestCurrentBranch = useRef(currentBranch);
-  latestCurrentBranch.current = currentBranch;
-  const latestBranches = useRef(branches);
-  latestBranches.current = branches;
-  const isActionCurrent = useCallback(
-    (repoId: string, ref?: GitRefIdentity) => {
-      if (actionRepoId() !== repoId) return false;
-      if (!ref) return true;
-      const currentRef = latestSelectedRef.current;
-      return currentRef !== null && refKey(currentRef) === refKey(ref);
-    },
-    [actionRepoId],
-  );
   const branchGroupByDirectory = useGitLogStore(
     (s) => s.branchGroupByDirectory,
   );
   const toggleBranchGroupByDirectory = useGitLogStore(
     (s) => s.toggleBranchGroupByDirectory,
   );
-
-  const handleNewBranch = useCallback(async () => {
-    const repoId = actionRepoId();
-    if (!repoId) return;
-    if (onNewBranch) {
-      onNewBranch();
-    } else {
-      await runSidebarAction(
-        () => operations.createPrompt(repoId),
-        "Create branch failed",
-        { repoId },
-        isActionCurrent,
-        requestFromSurface,
-      );
-    }
-  }, [
-    actionRepoId,
-    isActionCurrent,
-    onNewBranch,
-    operations,
-    requestFromSurface,
-  ]);
-
-  const handleUpdateSelected = useCallback(async () => {
-    if (!selectedRef || !selectedLocalBranch?.upstream) return;
-    const repoId = actionRepoId();
-    if (!repoId) return;
-    await runSidebarAction(
-      () => operations.update(repoId, selectedLocalBranch.name),
-      "Update failed",
-      { repoId, ref: selectedRef },
-      isActionCurrent,
-      requestFromSurface,
-    );
-  }, [
-    actionRepoId,
-    isActionCurrent,
-    operations,
-    requestFromSurface,
-    selectedLocalBranch,
-    selectedRef,
-  ]);
-
-  const handleDeleteBranch = useCallback(async () => {
-    if (!selectedRef || !selectedLocalBranch) return;
-    const repoId = actionRepoId();
-    if (!repoId) return;
-    await runSidebarAction(
-      () => operations.deletePrompt(repoId, selectedLocalBranch.name),
-      "Delete failed",
-      { repoId, ref: selectedRef },
-      isActionCurrent,
-      requestFromSurface,
-    );
-  }, [
-    actionRepoId,
-    isActionCurrent,
-    operations,
-    requestFromSurface,
-    selectedLocalBranch,
-    selectedRef,
-  ]);
-
-  const handleDeleteSelectedBranches = useCallback(async () => {
-    if (selectedLocalBranches.length < 2) return;
-    const repoId = actionRepoId();
-    if (!repoId) return;
-
-    const branchesToDelete = [...selectedLocalBranches];
-    const capturedSelection = selectedRefs.map(refKey);
-    const names = branchesToDelete.map((branch) => branch.name);
-    const list = names.map((name) => `• ${name}`).join("\n");
-    const result = (await requestFromSurface(
-      "showConfirmMessage",
-      {
-        message: `Delete these ${names.length} branches?\n\n${list}`,
-        confirmLabel: `Delete ${names.length} Branches`,
-      },
-      { scope: "global" },
-    )) as { confirmed?: boolean } | undefined;
-
-    if (
-      result?.confirmed !== true ||
-      actionRepoId() !== repoId ||
-      latestCurrentBranch.current !== currentBranch ||
-      JSON.stringify(latestSelectedRefs.current.map(refKey)) !==
-        JSON.stringify(capturedSelection)
-    ) {
-      return;
-    }
-
-    const failed: string[] = [];
-    for (const branch of branchesToDelete) {
-      if (
-        actionRepoId() !== repoId ||
-        latestCurrentBranch.current === branch.name ||
-        !latestBranches.current.some(
-          (candidate) =>
-            !candidate.isRemote &&
-            candidate.fullRef === branch.fullRef &&
-            !candidate.isCurrent,
-        )
-      ) {
-        continue;
-      }
-      try {
-        await operations.delete(repoId, branch, false);
-      } catch (error) {
-        const formatted = formatBranchActionError(error);
-        failed.push(`${branch.name}: ${formatted.message}`);
-      }
-    }
-
-    if (failed.length > 0 && actionRepoId() === repoId) {
-      await requestFromSurface(
-        "showErrorNotification",
-        {
-          message: `Could not delete ${failed.length} of ${names.length} selected branches:\n${failed.join("\n")}`,
-        },
-        { scope: "global" },
-      );
-    }
-  }, [
-    actionRepoId,
-    operations,
-    requestFromSurface,
-    selectedLocalBranches,
-    selectedRefs,
-    currentBranch,
-  ]);
 
   const handleFetch = useCallback(async () => {
     const repoId = actionRepoId();
@@ -226,31 +41,6 @@ export function BranchSidebar({
       requestFromSurface,
     );
   }, [actionRepoId, isActionCurrent, operations, requestFromSurface]);
-
-  const handleToggleFavorite = useCallback(async () => {
-    if (!selectedRef || selectedFavorite === undefined) return;
-    const repoId = actionRepoId();
-    if (!repoId) return;
-    await runSidebarAction(
-      () => operations.setFavorite(repoId, selectedRef, !selectedFavorite),
-      "Could not update favorite",
-      { repoId, ref: selectedRef },
-      isActionCurrent,
-      requestFromSurface,
-    );
-  }, [
-    actionRepoId,
-    isActionCurrent,
-    operations,
-    requestFromSurface,
-    selectedFavorite,
-    selectedRef,
-  ]);
-
-  const handleNavigateToHead = useCallback(async () => {
-    if (!selectedRef || !selectedTargetHash) return;
-    await navigateToRef(selectedRef, selectedTargetHash);
-  }, [navigateToRef, selectedRef, selectedTargetHash]);
 
   const handleExpandAll = useCallback(() => {
     window.dispatchEvent(new CustomEvent("branch-tree-expand-all"));
@@ -273,69 +63,6 @@ export function BranchSidebar({
           </button>
         </Tooltip>
       )}
-      <Tooltip text="New Branch">
-        <button
-          type="button"
-          className="branch-sidebar-btn"
-          aria-label="New Branch"
-          onClick={handleNewBranch}
-          disabled={!mutationRepoId}
-        >
-          <IconAdd />
-        </button>
-      </Tooltip>
-      <Tooltip
-        text={
-          selectedLocalBranch && !selectedLocalBranch.upstream
-            ? "No upstream configured"
-            : "Update Selected"
-        }
-      >
-        <button
-          type="button"
-          className="branch-sidebar-btn"
-          aria-label="Update Selected"
-          aria-description={
-            selectedLocalBranch && !selectedLocalBranch.upstream
-              ? "No upstream configured"
-              : undefined
-          }
-          onClick={handleUpdateSelected}
-          disabled={!mutationRepoId || !selectedLocalBranch?.upstream}
-        >
-          <IconUpdate />
-        </button>
-      </Tooltip>
-      <Tooltip
-        text={
-          selectedLocalBranches.length > 1
-            ? `Delete ${selectedLocalBranches.length} Selected Branches`
-            : "Delete Branch"
-        }
-      >
-        <button
-          type="button"
-          className="branch-sidebar-btn"
-          aria-label={
-            selectedLocalBranches.length > 1
-              ? `Delete Selected Branches (${selectedLocalBranches.length})`
-              : "Delete Branch"
-          }
-          onClick={
-            selectedLocalBranches.length > 1
-              ? handleDeleteSelectedBranches
-              : handleDeleteBranch
-          }
-          disabled={
-            !mutationRepoId ||
-            (selectedLocalBranches.length > 1
-              ? false
-              : !selectedLocalBranch || selectedRefs.length !== 1)
-          }
-        >
-          <IconDelete />
-        </button>
-      </Tooltip>
       <Tooltip text="Fetch">
         <button
           type="button"
@@ -345,19 +72,6 @@ export function BranchSidebar({
           disabled={!mutationRepoId}
         >
           <IconFetch />
-        </button>
-      </Tooltip>
-      <Tooltip text="Mark/Unmark As Favorite">
-        <button
-          type="button"
-          className="branch-sidebar-btn"
-          aria-label="Mark/Unmark As Favorite"
-          onClick={handleToggleFavorite}
-          disabled={
-            !mutationRepoId || !selectedRef || selectedFavorite === undefined
-          }
-        >
-          <IconStar />
         </button>
       </Tooltip>
       <Tooltip text="Navigate Log to Selected Ref Head">
