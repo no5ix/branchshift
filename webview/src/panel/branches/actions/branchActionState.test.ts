@@ -134,6 +134,7 @@ describe("branch action availability", () => {
     expect(menuShape(branchContext(localBranch))).toEqual([
       "update",
       "push",
+      "force-push",
       "copy-branch-name",
       "separator:sync",
       "checkout",
