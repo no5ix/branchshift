@@ -55,6 +55,8 @@ describe("BranchContextMenu", () => {
     expect(menu.style.gridTemplateColumns).toBe("max-content");
     expect(menu.style.width).toBe("max-content");
     expect(menu.style.maxWidth).toBe("calc(100vw - 8px)");
+    expect(menu.style.maxHeight).toBe("calc(100vh - 30px - 8px)");
+    expect(menu.style.overflowY).toBe("auto");
     expect(action.style.width).toBe("100%");
     expect(action.style.maxWidth).toBe("100%");
     expect(action.style.display).toBe("block");
@@ -75,6 +77,8 @@ describe("BranchContextMenu", () => {
 
     const menu = view.getByRole("menu");
     expect(menu.classList.contains("commit-context-menu")).toBe(true);
+    expect(menu.style.maxHeight).toBe("calc(100vh - 30px - 8px)");
+    expect(menu.style.overflowY).toBe("auto");
     for (const item of within(menu).getAllByRole("menuitem")) {
       expect(item.classList.contains("commit-context-menu-item")).toBe(true);
       expect(item.tagName).toBe("BUTTON");
