@@ -12,17 +12,23 @@ function deferredVoid() {
 
 afterEach(cleanup);
 
-it("prevents duplicate push submission", async () => {
+it("shows a force-push confirmation and prevents duplicate submissions", async () => {
   const pending = deferredVoid();
   const onPush = vi.fn(() => pending.promise);
   const view = render(
     <PushDialog branchName="feature" onClose={vi.fn()} onPush={onPush} />,
   );
-  const push = view.getByRole("button", { name: "Push" });
+  expect(view.getByText("⚠️ Force Push Branch")).toBeTruthy();
+  expect(
+    view.getByText("Force Push branch 'feature' to remote 'origin'."),
+  ).toBeTruthy();
+  expect(view.queryByRole("button", { name: "Push" })).toBeNull();
+  const push = view.getByRole("button", { name: "Force Push" });
 
   fireEvent.click(push);
   fireEvent.click(push);
   expect(onPush).toHaveBeenCalledTimes(1);
+  expect(onPush).toHaveBeenCalledWith(true);
 
   pending.resolve();
   await waitFor(() => expect((push as HTMLButtonElement).disabled).toBe(false));
