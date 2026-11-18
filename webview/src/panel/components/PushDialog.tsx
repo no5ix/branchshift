@@ -127,9 +127,9 @@ export function PushDialog({ branchName, onClose, onPush }: PushDialogProps) {
             onClick={() => void handlePush(true)}
             disabled={submitting}
             style={{
-              background: "var(--vscode-errorForeground, #f48771)",
-              color: "var(--vscode-button-foreground, #fff)",
-              border: "none",
+              background: "transparent",
+              color: "var(--vscode-errorForeground, #f48771)",
+              border: "1px solid var(--vscode-errorForeground, #f48771)",
               borderRadius: 4,
               padding: "4px 14px",
               fontSize: 12,
