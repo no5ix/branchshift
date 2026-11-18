@@ -79,7 +79,7 @@ export function PushDialog({ branchName, onClose, onPush }: PushDialogProps) {
             color: "var(--app-fg)",
           }}
         >
-          Push Branch
+          ⚠️ Force Push Branch
         </div>
 
         {/* Description */}
@@ -91,7 +91,7 @@ export function PushDialog({ branchName, onClose, onPush }: PushDialogProps) {
             lineHeight: 1.5,
           }}
         >
-          Push branch '{branchName}' to remote 'origin'.
+          Force Push branch '{branchName}' to remote 'origin'.
         </div>
 
         {/* Buttons */}
@@ -103,29 +103,11 @@ export function PushDialog({ branchName, onClose, onPush }: PushDialogProps) {
             gap: 8,
           }}
         >
-          <button
-            type="button"
-            onClick={() => void handlePush(true)}
-            disabled={submitting}
-            style={{
-              background: "transparent",
-              color: "var(--vscode-errorForeground, #f48771)",
-              border: "1px solid var(--vscode-errorForeground, #f48771)",
-              borderRadius: 4,
-              padding: "4px 14px",
-              fontSize: 12,
-              height: 28,
-              cursor: submitting ? "default" : "pointer",
-              opacity: submitting ? 0.4 : 1,
-              fontWeight: 500,
-            }}
-          >
-            Force Push
-          </button>
           <div style={{ flex: 1 }} />
           <button
             type="button"
             onClick={onClose}
+            disabled={submitting}
             style={{
               background: "var(--vscode-button-secondaryBackground, #3a3d41)",
               color: "var(--vscode-button-secondaryForeground, var(--app-fg))",
@@ -134,28 +116,30 @@ export function PushDialog({ branchName, onClose, onPush }: PushDialogProps) {
               padding: "4px 14px",
               fontSize: 12,
               height: 28,
-              cursor: "pointer",
+              cursor: submitting ? "default" : "pointer",
+              opacity: submitting ? 0.5 : 1,
             }}
           >
             Cancel
           </button>
           <button
             type="button"
-            onClick={() => void handlePush(false)}
+            onClick={() => void handlePush(true)}
             disabled={submitting}
             style={{
-              background: "var(--button-bg)",
-              color: "var(--button-fg)",
+              background: "var(--vscode-errorForeground, #f48771)",
+              color: "var(--vscode-button-foreground, #fff)",
               border: "none",
               borderRadius: 4,
               padding: "4px 14px",
               fontSize: 12,
               height: 28,
               cursor: submitting ? "default" : "pointer",
-              opacity: submitting ? 0.4 : 1,
+              opacity: submitting ? 0.5 : 1,
+              fontWeight: 500,
             }}
           >
-            Push
+            Force Push
           </button>
         </div>
       </div>
