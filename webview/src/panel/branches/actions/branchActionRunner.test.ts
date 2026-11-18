@@ -99,6 +99,7 @@ describe("runBranchAction", () => {
     await runBranchAction("checkout-rebase", context, ports);
     await runBranchAction("rename", context, ports);
     await runBranchAction("push", context, ports);
+    await runBranchAction("force-push", context, ports);
 
     expect(ports.operations.setFavorite).toHaveBeenCalledWith(
       "repo-a",
@@ -125,6 +126,11 @@ describe("runBranchAction", () => {
       "repo-a",
       "feature",
       "renamed",
+    );
+    expect(ports.operations.push).toHaveBeenCalledWith(
+      "repo-a",
+      "feature",
+      false,
     );
     expect(ports.ui.openPush).toHaveBeenCalledWith(
       "repo-a",
