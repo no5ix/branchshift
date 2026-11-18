@@ -7,8 +7,10 @@ import type {
 } from "./branchActionTypes";
 
 const branchMenu: readonly (BranchActionId | { separator: string })[] = [
-  "toggle-favorite",
-  { separator: "favorite" },
+  "update",
+  "push",
+  "copy-branch-name",
+  { separator: "sync" },
   "checkout",
   "new-branch",
   "compare-current",
@@ -20,16 +22,14 @@ const branchMenu: readonly (BranchActionId | { separator: string })[] = [
   "rename",
   "delete",
   "delete-local-and-remote",
-  { separator: "sync" },
-  "update",
-  "push",
-  { separator: "copy" },
-  "copy-branch-name",
+  { separator: "favorite" },
+  "toggle-favorite",
 ];
 
-const tagMenu: readonly BranchActionId[] = [
-  "toggle-favorite",
+const tagMenu: readonly (BranchActionId | { separator: string })[] = [
   "compare-current",
+  { separator: "favorite" },
+  "toggle-favorite",
 ];
 
 export function resolveDeleteTargets(
