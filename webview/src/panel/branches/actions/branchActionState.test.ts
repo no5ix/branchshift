@@ -57,6 +57,7 @@ describe("branch action availability", () => {
     expect(menuShape(current)).toEqual([
       "update",
       "push",
+      "force-push",
       "copy-branch-name",
       "separator:sync",
       "new-branch",
@@ -153,7 +154,8 @@ describe("branch action availability", () => {
       items.filter((item) => item.kind === "action").map((item) => item.label),
     ).toEqual([
       "Update",
-      "Push...",
+      "Push",
+      "Force Push...",
       "Copy Branch Name",
       "Checkout",
       "New Branch from 'feature'...",
