@@ -55,17 +55,16 @@ describe("branch action availability", () => {
       getBranchActionAvailability("delete-local-and-remote", current),
     ).toEqual({ visible: true, enabled: false });
     expect(menuShape(current)).toEqual([
-      "toggle-favorite",
-      "separator:favorite",
+      "update",
+      "push",
+      "copy-branch-name",
+      "separator:sync",
       "new-branch",
       "compare-current",
       "rename",
       "delete-local-and-remote",
-      "separator:sync",
-      "update",
-      "push",
-      "separator:copy",
-      "copy-branch-name",
+      "separator:favorite",
+      "toggle-favorite",
     ]);
     expect(
       getBranchActionItems(current).find(
@@ -111,8 +110,8 @@ describe("branch action availability", () => {
 
     expect(getBranchActionAvailability("rename", remote).visible).toBe(false);
     expect(menuShape(remote)).toEqual([
-      "toggle-favorite",
-      "separator:favorite",
+      "copy-branch-name",
+      "separator:sync",
       "checkout",
       "new-branch",
       "compare-current",
@@ -123,8 +122,8 @@ describe("branch action availability", () => {
       "separator:manage",
       "delete",
       "delete-local-and-remote",
-      "separator:copy",
-      "copy-branch-name",
+      "separator:favorite",
+      "toggle-favorite",
     ]);
   });
 
@@ -132,8 +131,10 @@ describe("branch action availability", () => {
     const items = getBranchActionItems(branchContext(localBranch));
 
     expect(menuShape(branchContext(localBranch))).toEqual([
-      "toggle-favorite",
-      "separator:favorite",
+      "update",
+      "push",
+      "copy-branch-name",
+      "separator:sync",
       "checkout",
       "new-branch",
       "compare-current",
@@ -145,16 +146,15 @@ describe("branch action availability", () => {
       "rename",
       "delete",
       "delete-local-and-remote",
-      "separator:sync",
-      "update",
-      "push",
-      "separator:copy",
-      "copy-branch-name",
+      "separator:favorite",
+      "toggle-favorite",
     ]);
     expect(
       items.filter((item) => item.kind === "action").map((item) => item.label),
     ).toEqual([
-      "Mark as Favorite",
+      "Update",
+      "Push...",
+      "Copy Branch Name",
       "Checkout",
       "New Branch from 'feature'...",
       "Compare with Current",
@@ -164,9 +164,7 @@ describe("branch action availability", () => {
       "Rename...",
       "Delete",
       "Delete Local and Remote",
-      "Update",
-      "Push...",
-      "Copy Branch Name",
+      "Mark as Favorite",
     ]);
   });
 
@@ -272,11 +270,15 @@ describe("branch action availability", () => {
       currentBranch: "main",
     };
 
-    expect(menuShape(context)).toEqual(["toggle-favorite", "compare-current"]);
+    expect(menuShape(context)).toEqual([
+      "compare-current",
+      "separator:favorite",
+      "toggle-favorite",
+    ]);
     expect(
       getBranchActionItems(context).map((item) =>
         item.kind === "action" ? item.label : "separator",
       ),
-    ).toEqual(["Unmark as Favorite", "Compare with Current"]);
+    ).toEqual(["Compare with Current", "Unmark as Favorite"]);
   });
 });
