@@ -4,15 +4,6 @@ import CodiconListTree from "~icons/codicon/list-tree";
 import { Tooltip } from "../../shared/components/Tooltip";
 import "../../shared/components/Tooltip.css";
 import { useGitLogStore } from "../../shared/store/git-log-store-context";
-import type { PanelStore } from "../../shared/store/panel-store";
-import type { GitRefIdentity } from "../../shared/types/git";
-import {
-  type BranchActionUi,
-  formatBranchActionError,
-  notifyBranchActionErrorIfCurrent,
-} from "../branches/actions/branchActionRunner";
-import { useBranchOperations } from "../branches/branchOperations";
-import { refKey } from "../utils/refUtils";
 
 export function BranchSidebar({
   onTogglePanel,
@@ -21,26 +12,12 @@ export function BranchSidebar({
   onTogglePanel?: () => void;
   onNewBranch?: () => void;
 } = {}) {
-  const actionRepoId = useGitLogStore((s) => s.actionRepoId);
-  const requestFromSurface = useGitLogStore((s) => s.requestFromSurface);
   const branchGroupByDirectory = useGitLogStore(
     (s) => s.branchGroupByDirectory,
   );
   const toggleBranchGroupByDirectory = useGitLogStore(
     (s) => s.toggleBranchGroupByDirectory,
   );
-
-  const handleFetch = useCallback(async () => {
-    const repoId = actionRepoId();
-    if (!repoId) return;
-    await runSidebarAction(
-      () => operations.fetch(repoId),
-      "Fetch failed",
-      { repoId },
-      isActionCurrent,
-      requestFromSurface,
-    );
-  }, [actionRepoId, isActionCurrent, operations, requestFromSurface]);
 
   const handleExpandAll = useCallback(() => {
     window.dispatchEvent(new CustomEvent("branch-tree-expand-all"));
@@ -63,17 +40,6 @@ export function BranchSidebar({
           </button>
         </Tooltip>
       )}
-      <Tooltip text="Fetch">
-        <button
-          type="button"
-          className="branch-sidebar-btn"
-          aria-label="Fetch"
-          onClick={handleFetch}
-          disabled={!mutationRepoId}
-        >
-          <IconFetch />
-        </button>
-      </Tooltip>
       <Tooltip text="Navigate Log to Selected Ref Head">
         <button
           type="button"
