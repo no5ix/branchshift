@@ -57,6 +57,10 @@ describe("BranchContextMenu", () => {
     expect(menu.style.maxWidth).toBe("calc(100vw - 8px)");
     expect(menu.style.maxHeight).toBe("calc(100vh - 30px - 8px)");
     expect(menu.style.overflowY).toBe("auto");
+    expect(menu.style.scrollbarWidth).toBe("thin");
+    expect(menu.style.scrollbarColor).toBe(
+      "var(--vscode-scrollbarSlider-background, #6b6b6b) transparent",
+    );
     expect(action.style.width).toBe("100%");
     expect(action.style.maxWidth).toBe("100%");
     expect(action.style.display).toBe("block");
