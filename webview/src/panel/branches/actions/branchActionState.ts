@@ -9,6 +9,7 @@ import type {
 const branchMenu: readonly (BranchActionId | { separator: string })[] = [
   "update",
   "push",
+  "force-push",
   "copy-branch-name",
   { separator: "sync" },
   "checkout",
@@ -123,7 +124,7 @@ export function getBranchActionAvailability(
         };
   }
 
-  const visible = id === "push" && !branch.isRemote;
+  const visible = (id === "push" || id === "force-push") && !branch.isRemote;
   return { visible, enabled: visible };
 }
 
@@ -186,7 +187,9 @@ function getLabel(id: BranchActionId, context: BranchActionContext): string {
     case "update":
       return "Update";
     case "push":
-      return "Push...";
+      return "Push";
+    case "force-push":
+      return "Force Push...";
     case "copy-branch-name":
       return "Copy Branch Name";
   }
