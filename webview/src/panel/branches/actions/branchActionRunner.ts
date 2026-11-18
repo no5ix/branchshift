@@ -326,6 +326,10 @@ export async function runBranchAction(
       return;
     case "push":
       if (!branch) return;
+      await submitPush(repoId, branch.name, false, operations, ui);
+      return;
+    case "force-push":
+      if (!branch) return;
       ui.openPush(repoId, ref, branch.name);
       return;
     case "copy-branch-name":
