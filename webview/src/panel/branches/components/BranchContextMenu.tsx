@@ -99,6 +99,9 @@ export function BranchContextMenu({
               zIndex: 9999,
               maxHeight: `calc(100vh - ${position.top}px - 8px)`,
               overflowY: "auto",
+              scrollbarWidth: "thin",
+              scrollbarColor:
+                "var(--vscode-scrollbarSlider-background, #6b6b6b) transparent",
             }
           : {
               position: "fixed",
@@ -117,6 +120,9 @@ export function BranchContextMenu({
               boxSizing: "border-box",
               maxHeight: `calc(100vh - ${position.top}px - 8px)`,
               overflowY: "auto",
+              scrollbarWidth: "thin",
+              scrollbarColor:
+                "var(--vscode-scrollbarSlider-background, #6b6b6b) transparent",
               boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
             }
       }
