@@ -47,6 +47,7 @@ describe("BranchContextMenu", () => {
     );
 
     const menu = view.getByRole("menu") as HTMLElement;
+    expect(menu.parentElement).toBe(document.body);
     const action = within(menu).getByRole("menuitem", {
       name: "Checkout",
     }) as HTMLButtonElement;
