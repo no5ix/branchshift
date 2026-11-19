@@ -2094,7 +2094,14 @@ export async function activate(context: vscode.ExtensionContext) {
     repoRegistry,
     (activeId) =>
       context.workspaceState.update("branchshift.activeRepoId", activeId),
-    (repo) => broadcastActiveRepoChanged(repo),
+    (repo) => {
+      broadcastActiveRepoChanged(repo);
+      const activeRepoId = repo?.id ?? null;
+      if (activeRepoId && activeRepoId !== lastActiveRepoId) {
+        lastActiveRepoId = activeRepoId;
+        fetchActiveRepository();
+      }
+    },
     selectionSerializer,
   );
 
