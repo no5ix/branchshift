@@ -1952,7 +1952,6 @@ export async function activate(context: vscode.ExtensionContext) {
   const fetchInFlight = new Map<string, Promise<void>>();
   const fetchSuppressedUntil = new Map<string, number>();
   let windowFocused = vscode.window.state.focused;
-  let lastActiveRepoId = repoRegistry.getActiveId();
 
   async function fetchRepository(repoId: string): Promise<boolean> {
     const existing = fetchInFlight.get(repoId);
@@ -1979,8 +1978,15 @@ export async function activate(context: vscode.ExtensionContext) {
       return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      if (/authentication failed|could not read Username|terminal prompts disabled|permission denied \(publickey\)|access denied|http basic: access denied/i.test(message)) {
-        fetchSuppressedUntil.set(repoId, Date.now() + FETCH_AUTH_FAILURE_COOLDOWN_MS);
+      if (
+        /authentication failed|could not read Username|terminal prompts disabled|permission denied \(publickey\)|access denied|http basic: access denied/i.test(
+          message,
+        )
+      ) {
+        fetchSuppressedUntil.set(
+          repoId,
+          Date.now() + FETCH_AUTH_FAILURE_COOLDOWN_MS,
+        );
       }
       throw error;
     } finally {
@@ -2081,7 +2087,6 @@ export async function activate(context: vscode.ExtensionContext) {
       broadcastActiveRepoChanged(repo);
       const activeRepoId = repo?.id ?? null;
       if (activeRepoId) {
-        lastActiveRepoId = activeRepoId;
         if (windowFocused) void fetchRepository(activeRepoId).catch(() => {});
       }
     },
