@@ -121,6 +121,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // 1. MessageRouter (always created)
   const messageRouter = new MessageRouter();
+  let resolveCommitViewReady!: () => void;
+  const commitViewReady = new Promise<void>((resolve) => {
+    resolveCommitViewReady = resolve;
+  });
 
   // 2. GitLogViewProvider (always registered)
   const logProvider = new GitLogViewProvider(
@@ -135,8 +139,25 @@ export async function activate(context: vscode.ExtensionContext) {
     ),
   );
 
-  // 2b. Repo registry built from validated workspace folders
+  // 2b. Create the registry and register the Commit view before repository
+  // discovery. The Activity Bar container can be opened while discovery runs;
+  // the provider keeps a loading page until activation has registered its
+  // message handlers and repo resolver.
   const repoRegistry = new RepoRegistry();
+  const commitProvider = new CommitViewProvider(
+    context.extensionUri,
+    messageRouter,
+    repoRegistry,
+    commitViewReady,
+  );
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      CommitViewProvider.viewType,
+      commitProvider,
+      { webviewOptions: { retainContextWhenHidden: true } },
+    ),
+  );
+
   const branchDashboardState = new BranchDashboardStateStore(
     context.workspaceState,
   );
@@ -191,20 +212,6 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   const diffManager = new DiffEditorManager(repoRegistry);
-
-  // 2c. CommitViewProvider (always registered)
-  const commitProvider = new CommitViewProvider(
-    context.extensionUri,
-    messageRouter,
-    repoRegistry,
-  );
-  context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(
-      CommitViewProvider.viewType,
-      commitProvider,
-      { webviewOptions: { retainContextWhenHidden: true } },
-    ),
-  );
 
   // 3. MergeEditorManager + ConflictsManager (always created)
   const mergeManager = new MergeEditorManager(
@@ -2242,6 +2249,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push({ dispose: () => clearTimeout(startupFetch) });
 
   messageRouter.enableStrictRepoContext();
+  resolveCommitViewReady();
 }
 
 function extToLanguage(ext: string): string {
