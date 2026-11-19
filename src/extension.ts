@@ -2013,11 +2013,7 @@ export async function activate(context: vscode.ExtensionContext) {
   ) => {
     const repoName = repo ? formatRepoLabel(repo, repoRegistry.list()) : "";
     messageRouter.broadcastEvent("activeRepoChanged", { repo, repoName });
-    const nextRepoId = repo?.id ?? null;
-    if (nextRepoId && nextRepoId !== lastActiveRepoId) {
-      lastActiveRepoId = nextRepoId;
-      fetchActiveRepository();
-    }
+
   };
 
   // Task 24 (P2#6) + Fix-5 (F5): serialize concurrent selects via a
@@ -2231,6 +2227,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Keep remote-tracking refs and ahead/behind indicators fresh.
   // Run in the extension host so this remains active while the webview is hidden.
+  // Repository switches are announced after the active id is committed.
+  const currentActiveRepoId = () => repoRegistry.getActiveId();
+  lastActiveRepoId = currentActiveRepoId();
   const fetchTimer = setInterval(fetchActiveRepository, FETCH_INTERVAL_MS);
   context.subscriptions.push({ dispose: () => clearInterval(fetchTimer) });
   context.subscriptions.push(
