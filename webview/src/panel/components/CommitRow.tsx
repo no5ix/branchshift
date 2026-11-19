@@ -178,7 +178,7 @@ export function CommitRow({
         alignItems: "center",
         height: ROW_HEIGHT,
         paddingLeft: fileHistoryActive
-          ? 0
+          ? 20
           : getCommitMessageOffset(rowMaxColumn),
         paddingRight: 8,
         color: isSelected ? "var(--selected-fg)" : "inherit",
