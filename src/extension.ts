@@ -2218,16 +2218,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeWorkspaceFolders(() => {
-      const activeRepoId = repoRegistry.getActiveId();
-      if (activeRepoId && activeRepoId !== lastActiveRepoId) {
-        lastActiveRepoId = activeRepoId;
-        if (windowFocused) void fetchRepository(activeRepoId).catch(() => {});
-      }
-    }),
-  );
-
-  context.subscriptions.push(
-    vscode.workspace.onDidChangeWorkspaceFolders(() => {
       const foldersNow = (vscode.workspace.workspaceFolders ?? []).map((f) => ({
         fsPath: f.uri.fsPath,
         name: f.name,
