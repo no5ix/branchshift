@@ -322,9 +322,15 @@ export async function activate(context: vscode.ExtensionContext) {
         const runtime = repoRegistry.getActive();
         if (!fileUri || !runtime) return;
         const relativePath = vscode.workspace.asRelativePath(fileUri, false);
-        // Ensure the Git Log panel is visible before sending the event
+        // Reveal the Git Log webview first. Focusing an unresolved view can
+        // open the extension's container without resolving this webview; the
+        // event would then be broadcast before the receiver exists.
+        await vscode.commands.executeCommand(
+          "workbench.view.extension.branchshift-panel",
+        );
         await vscode.commands.executeCommand("branchshift.gitLog.focus");
-        // Send file filter to webview
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        // Send the file filter only after the view has had a chance to resolve.
         messageRouter.broadcastEvent("showFileHistory", {
           file: relativePath,
         });
