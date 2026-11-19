@@ -2068,7 +2068,7 @@ export async function activate(context: vscode.ExtensionContext) {
       return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      if (/authentication failed|could not read Username|terminal prompts disabled|permission denied \\(publickey\\)|access denied|http basic: access denied/i.test(message)) {
+      if (/authentication failed|could not read Username|terminal prompts disabled|permission denied \(publickey\)|access denied|http basic: access denied/i.test(message)) {
         fetchSuppressedUntil.set(repoId, Date.now() + FETCH_AUTH_FAILURE_COOLDOWN_MS);
       }
       throw error;
