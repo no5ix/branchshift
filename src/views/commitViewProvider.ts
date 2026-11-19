@@ -10,6 +10,7 @@ export class CommitViewProvider implements vscode.WebviewViewProvider {
     private readonly extensionUri: vscode.Uri,
     private readonly messageRouter: MessageRouter,
     private readonly repoRegistry: RepoRegistry,
+    private readonly ready: Promise<void> = Promise.resolve(),
   ) {}
 
   resolveWebviewView(
@@ -24,44 +25,48 @@ export class CommitViewProvider implements vscode.WebviewViewProvider {
       localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, "dist")],
     };
 
-    webview.html = getWebviewHtml(webview, this.extensionUri, "commit");
+    // Resolve the Activity Bar container immediately, even while activation
+    // is still discovering repositories and registering message handlers.
+    webview.html =
+      "<!DOCTYPE html><html><body><p>Loading BranchShift…</p></body></html>";
 
-    const routerDisposable = this.messageRouter.registerWebview(webview);
-    webviewView.onDidDispose(() => routerDisposable.dispose());
+    let disposed = false;
+    let routerDisposable: vscode.Disposable | undefined;
+    webviewView.onDidDispose(() => {
+      disposed = true;
+      routerDisposable?.dispose();
+    });
 
-    // First time opening: refresh the commit and log state after a delay
-    setTimeout(() => {
-      if (webviewView.visible) {
-        const runtime = this.repoRegistry.getActive();
-        runtime?.gitService.cache.invalidate();
-        this.messageRouter.broadcastEvent("commitStateChanged", {
-          repoId: runtime?.descriptor.id,
-        });
-        this.messageRouter.broadcastEvent("gitStateChanged", {
-          scope: "all",
-          repoId: runtime?.descriptor.id,
-        });
-      }
-    }, 200);
+    void this.ready.then(() => {
+      if (disposed) return;
 
-    // Refresh both views when the Commit view becomes visible. The Commit view
-    // and the bottom Git Log view own their visibility independently.
-    webviewView.onDidChangeVisibility(() => {
-      if (webviewView.visible) {
-        // Small delay to ensure the view is ready before refreshing its state
-        setTimeout(() => {
-          // Invalidate the active repo's git cache to ensure fresh data
-          const runtime = this.repoRegistry.getActive();
-          runtime?.gitService.cache.invalidate();
-          this.messageRouter.broadcastEvent("commitStateChanged", {
-            repoId: runtime?.descriptor.id,
-          });
-          this.messageRouter.broadcastEvent("gitStateChanged", {
-            scope: "all",
-            repoId: runtime?.descriptor.id,
-          });
-        }, 100);
-      }
+      webview.html = getWebviewHtml(webview, this.extensionUri, "commit");
+      routerDisposable = this.messageRouter.registerWebview(webview);
+
+      // First time opening: refresh the commit and log state after a delay
+      setTimeout(() => {
+        if (webviewView.visible) this.refreshState();
+      }, 200);
+
+      // Refresh both views when the Commit view becomes visible. The Commit view
+      // and the bottom Git Log view own their visibility independently.
+      webviewView.onDidChangeVisibility(() => {
+        if (webviewView.visible) {
+          setTimeout(() => this.refreshState(), 100);
+        }
+      });
+    });
+  }
+
+  private refreshState(): void {
+    const runtime = this.repoRegistry.getActive();
+    runtime?.gitService.cache.invalidate();
+    this.messageRouter.broadcastEvent("commitStateChanged", {
+      repoId: runtime?.descriptor.id,
+    });
+    this.messageRouter.broadcastEvent("gitStateChanged", {
+      scope: "all",
+      repoId: runtime?.descriptor.id,
     });
   }
 }
