@@ -2237,15 +2237,6 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   fetchActiveRepository();
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand("branchshift.__automaticFetchRepoChanged", () => {
-      const activeRepoId = repoRegistry.getActiveId();
-      if (activeRepoId && activeRepoId !== lastActiveRepoId) {
-        lastActiveRepoId = activeRepoId;
-        fetchActiveRepository();
-      }
-    }),
-  );
   messageRouter.enableStrictRepoContext();
 }
 
