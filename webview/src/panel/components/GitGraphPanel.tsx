@@ -4,8 +4,10 @@ import { GitGraphSvg } from "./GitGraphSvg";
 
 export function GitGraphPanel({
   onRefreshComparison,
+  showGraph = true,
 }: {
   onRefreshComparison?: () => void | Promise<void>;
+  showGraph?: boolean;
 } = {}) {
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(600);
@@ -71,12 +73,14 @@ export function GitGraphPanel({
         onHeaderHeight={setHeaderHeight}
         onRefreshComparison={onRefreshComparison}
       />
-      <GitGraphSvg
-        scrollGroupRef={graphScrollGroupRef}
-        scrollTop={scrollTop}
-        height={svgHeight > 0 ? svgHeight : 0}
-        topOffset={headerHeight}
-      />
+      {showGraph && (
+        <GitGraphSvg
+          scrollGroupRef={graphScrollGroupRef}
+          scrollTop={scrollTop}
+          height={svgHeight > 0 ? svgHeight : 0}
+          topOffset={headerHeight}
+        />
+      )}
     </div>
   );
 }
