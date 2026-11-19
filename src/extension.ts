@@ -2227,7 +2227,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Keep remote-tracking refs and ahead/behind indicators fresh.
   // Run in the extension host so this remains active while the webview is hidden.
-  const fetchTimer = setInterval(fetchActiveRepository, FETCH_INTERVAL_MS);
+  const fetchTimer = setInterval(() => {
+    if (windowFocused) fetchActiveRepository();
+  }, FETCH_INTERVAL_MS);
   context.subscriptions.push({ dispose: () => clearInterval(fetchTimer) });
   context.subscriptions.push(
     vscode.window.onDidChangeWindowState((state) => {
