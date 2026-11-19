@@ -2007,7 +2007,11 @@ export async function activate(context: vscode.ExtensionContext) {
   ) => {
     const repoName = repo ? formatRepoLabel(repo, repoRegistry.list()) : "";
     messageRouter.broadcastEvent("activeRepoChanged", { repo, repoName });
-
+    const activeRepoId = repo?.id ?? null;
+    if (activeRepoId && activeRepoId !== lastActiveRepoId) {
+      lastActiveRepoId = activeRepoId;
+      fetchActiveRepository();
+    }
   };
 
   // Task 24 (P2#6) + Fix-5 (F5): serialize concurrent selects via a
@@ -2242,8 +2246,6 @@ export async function activate(context: vscode.ExtensionContext) {
       }
     }),
   );
-  const fetchTimer = setInterval(fetchActiveRepository, FETCH_INTERVAL_MS);
-
   messageRouter.enableStrictRepoContext();
 }
 
