@@ -155,6 +155,7 @@ export function CommitRow({
   const rowRef = usePreventSelect<HTMLDivElement>();
 
   const isSelected = selectedCommitHashes.includes(commit.hash);
+  const fileHistoryActive = useGitLogStore((s) => s.filter.file !== "");
   const col = lane?.column ?? 0;
   const refItems = buildRefDisplayItems(commit.refs);
 
@@ -176,7 +177,7 @@ export function CommitRow({
         display: "flex",
         alignItems: "center",
         height: ROW_HEIGHT,
-        paddingLeft: getCommitMessageOffset(rowMaxColumn),
+        paddingLeft: fileHistoryActive ? 0 : getCommitMessageOffset(rowMaxColumn),
         paddingRight: 8,
         color: isSelected ? "var(--selected-fg)" : "inherit",
       }}
