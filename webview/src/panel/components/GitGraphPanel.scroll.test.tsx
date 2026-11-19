@@ -65,7 +65,6 @@ afterAll(() => {
 });
 
 describe("GitGraphPanel scroll synchronization", () => {
-
   it("hides the graph when file history is active", () => {
     panelStore.setState({
       hasMore: false,
