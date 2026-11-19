@@ -65,6 +65,27 @@ afterAll(() => {
 });
 
 describe("GitGraphPanel scroll synchronization", () => {
+
+  it("hides the graph when file history is active", () => {
+    panelStore.setState({
+      hasMore: false,
+      loading: false,
+      filter: {
+        searchQuery: "",
+        branch: "",
+        author: "",
+        dateRange: "",
+        file: "src/example.ts",
+      },
+    });
+    const view = render(<GitGraphPanel showGraph={false} />, {
+      wrapper: StoreWrapper,
+    });
+
+    expect(view.container.querySelector("svg")).toBeNull();
+    expect(view.getByLabelText("Commit list")).toBeTruthy();
+  });
+
   it("moves the graph in the same scroll event as the commit list", () => {
     panelStore.setState({ hasMore: false, loading: false });
     const view = render(<GitGraphPanel />, { wrapper: StoreWrapper });
