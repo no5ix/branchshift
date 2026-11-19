@@ -2071,11 +2071,6 @@ export async function activate(context: vscode.ExtensionContext) {
   ) => {
     const repoName = repo ? formatRepoLabel(repo, repoRegistry.list()) : "";
     messageRouter.broadcastEvent("activeRepoChanged", { repo, repoName });
-    const activeRepoId = repo?.id ?? null;
-    if (activeRepoId && activeRepoId !== lastActiveRepoId) {
-      lastActiveRepoId = activeRepoId;
-      if (windowFocused) void fetchRepository(activeRepoId).catch(() => {});
-    }
   };
 
   const selectionSerializer = new Serializer();
