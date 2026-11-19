@@ -1954,7 +1954,7 @@ export async function activate(context: vscode.ExtensionContext) {
     });
   });
 
-  const FETCH_INTERVAL_MS = 6_000;
+  const FETCH_INTERVAL_MS = 8_000;
   const FETCH_AUTH_FAILURE_COOLDOWN_MS = 60_000;
   const fetchInFlight = new Map<string, Promise<void>>();
   const fetchSuppressedUntil = new Map<string, number>();
