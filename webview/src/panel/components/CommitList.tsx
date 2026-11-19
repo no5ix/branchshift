@@ -96,11 +96,14 @@ export function CommitList({
     setContextMenu(null);
   }, []);
 
+  const fileHistoryActive = useGitLogStore((s) => s.filter.file !== "");
   const maxColumn = Math.max(
     0,
     ...Object.values(graphLayout).map((l) => l.column),
   );
-  const messageColumnOffset = getCommitMessageOffset(maxColumn);
+  const messageColumnOffset = fileHistoryActive
+    ? 0
+    : getCommitMessageOffset(maxColumn);
 
   const virtualizer = useVirtualizer({
     count: visibleCommits.length,
