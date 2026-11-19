@@ -2087,7 +2087,7 @@ export async function activate(context: vscode.ExtensionContext) {
     (repo) => {
       broadcastActiveRepoChanged(repo);
       const activeRepoId = repo?.id ?? null;
-      if (activeRepoId && activeRepoId !== lastActiveRepoId) {
+      if (activeRepoId) {
         lastActiveRepoId = activeRepoId;
         if (windowFocused) void fetchRepository(activeRepoId).catch(() => {});
       }
@@ -2215,6 +2215,16 @@ export async function activate(context: vscode.ExtensionContext) {
     // why the tail must run under the mutex (I1).
     return folderReconciler.reconcile(folders);
   };
+
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeWorkspaceFolders(() => {
+      const activeRepoId = repoRegistry.getActiveId();
+      if (activeRepoId && activeRepoId !== lastActiveRepoId) {
+        lastActiveRepoId = activeRepoId;
+        if (windowFocused) void fetchRepository(activeRepoId).catch(() => {});
+      }
+    }),
+  );
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeWorkspaceFolders(() => {
