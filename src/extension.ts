@@ -2234,7 +2234,9 @@ export async function activate(context: vscode.ExtensionContext) {
       if (regainedFocus) fetchActiveRepository();
     }),
   );
-  fetchActiveRepository();
+  // Defer the startup fetch until repository discovery and selection settle.
+  const startupFetch = setTimeout(fetchActiveRepository, 0);
+  context.subscriptions.push({ dispose: () => clearTimeout(startupFetch) });
 
   messageRouter.enableStrictRepoContext();
 }
