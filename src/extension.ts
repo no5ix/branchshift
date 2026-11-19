@@ -1947,11 +1947,52 @@ export async function activate(context: vscode.ExtensionContext) {
     });
   });
 
-  messageRouter.handle("fetchAll", async (_params, ctx) => {
-    if (!ctx) return NOT_GIT_REPO;
-    await fetchRepository(ctx.repoId);
-    return { success: true };
-  });
+  const FETCH_INTERVAL_MS = 3_000;
+  const FETCH_AUTH_FAILURE_COOLDOWN_MS = 60_000;
+  const fetchInFlight = new Map<string, Promise<void>>();
+  const fetchSuppressedUntil = new Map<string, number>();
+  let windowFocused = vscode.window.state.focused;
+  let lastActiveRepoId = repoRegistry.getActiveId();
+
+  async function fetchRepository(repoId: string): Promise<boolean> {
+    const existing = fetchInFlight.get(repoId);
+    if (existing) {
+      await existing;
+      return false;
+    }
+    if ((fetchSuppressedUntil.get(repoId) ?? 0) > Date.now()) return false;
+    const runtime = repoRegistry.get(repoId);
+    if (!runtime) return false;
+
+    const task = withProgress(messageRouter, repoId, async () => {
+      await runtime.gitService.fetch();
+      runtime.gitService.invalidateCache();
+      messageRouter.broadcastEvent("gitStateChanged", {
+        scope: "all",
+        repoId,
+      });
+    });
+    fetchInFlight.set(repoId, task);
+    try {
+      await task;
+      fetchSuppressedUntil.delete(repoId);
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (/authentication failed|could not read Username|terminal prompts disabled|permission denied \(publickey\)|access denied|http basic: access denied/i.test(message)) {
+        fetchSuppressedUntil.set(repoId, Date.now() + FETCH_AUTH_FAILURE_COOLDOWN_MS);
+      }
+      throw error;
+    } finally {
+      if (fetchInFlight.get(repoId) === task) fetchInFlight.delete(repoId);
+    }
+  }
+
+  function fetchActiveRepository(): void {
+    if (!windowFocused) return;
+    const activeRepoId = repoRegistry.getActiveId();
+    if (activeRepoId) void fetchRepository(activeRepoId).catch(() => {});
+  }
 
   messageRouter.handle("setFavorite", async (params, ctx) => {
     if (!ctx) return NOT_GIT_REPO;
@@ -2016,7 +2057,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const activeRepoId = repo?.id ?? null;
     if (activeRepoId && activeRepoId !== lastActiveRepoId) {
       lastActiveRepoId = activeRepoId;
-      fetchActiveRepository();
+      if (windowFocused) void fetchRepository(activeRepoId).catch(() => {});
     }
   };
 
@@ -2041,53 +2082,6 @@ export async function activate(context: vscode.ExtensionContext) {
       if (windowFocused) void fetchRepository(activeRepoId).catch(() => {});
     }
   };
-
-  const FETCH_INTERVAL_MS = 3_000;
-  const FETCH_AUTH_FAILURE_COOLDOWN_MS = 60_000;
-  const fetchInFlight = new Map<string, Promise<void>>();
-  const fetchSuppressedUntil = new Map<string, number>();
-  let windowFocused = vscode.window.state.focused;
-  let lastActiveRepoId = repoRegistry.getActiveId();
-
-  async function fetchRepository(repoId: string): Promise<boolean> {
-    const existing = fetchInFlight.get(repoId);
-    if (existing) {
-      await existing;
-      return false;
-    }
-    if ((fetchSuppressedUntil.get(repoId) ?? 0) > Date.now()) return false;
-    const runtime = repoRegistry.get(repoId);
-    if (!runtime) return false;
-
-    const task = withProgress(messageRouter, repoId, async () => {
-      await runtime.gitService.fetch();
-      runtime.gitService.invalidateCache();
-      messageRouter.broadcastEvent("gitStateChanged", {
-        scope: "all",
-        repoId,
-      });
-    });
-    fetchInFlight.set(repoId, task);
-    try {
-      await task;
-      fetchSuppressedUntil.delete(repoId);
-      return true;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (/authentication failed|could not read Username|terminal prompts disabled|permission denied \(publickey\)|access denied|http basic: access denied/i.test(message)) {
-        fetchSuppressedUntil.set(repoId, Date.now() + FETCH_AUTH_FAILURE_COOLDOWN_MS);
-      }
-      throw error;
-    } finally {
-      if (fetchInFlight.get(repoId) === task) fetchInFlight.delete(repoId);
-    }
-  }
-
-  function fetchActiveRepository(): void {
-    if (!windowFocused) return;
-    const activeRepoId = repoRegistry.getActiveId();
-    if (activeRepoId) void fetchRepository(activeRepoId).catch(() => {});
-  }
 
   const selectionSerializer = new Serializer();
   const selectionCoordinator = new RepoSelectionCoordinator(
@@ -2231,7 +2225,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Keep remote-tracking refs and ahead/behind indicators fresh.
   // Run in the extension host so this remains active while the webview is hidden.
-  // Repository switches are announced after the active id is committed.
   const fetchTimer = setInterval(fetchActiveRepository, FETCH_INTERVAL_MS);
   context.subscriptions.push({ dispose: () => clearInterval(fetchTimer) });
   context.subscriptions.push(
