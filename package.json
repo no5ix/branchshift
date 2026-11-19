@@ -270,6 +270,8 @@
     "node-diff3": "^3.2.0"
   },
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onView:branchshift.commitPanel",
+    "onView:branchshift.gitLog"
   ]
 }
