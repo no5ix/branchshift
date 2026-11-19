@@ -36,7 +36,9 @@ function createFakeWebviewView(initialVisible: boolean): FakeWebviewView {
 }
 
 describe("CommitViewProvider panel ownership", () => {
-  it("keeps the Commit container resolvable while activation is still running", async () => {
+  it(
+    "keeps the Commit container resolvable while activation is still running",
+    async () => {
     let markReady!: () => void;
     const ready = new Promise<void>((resolve) => {
       markReady = resolve;
@@ -63,10 +65,16 @@ describe("CommitViewProvider panel ownership", () => {
     markReady();
     await Promise.resolve();
     assert.strictEqual(registered, 1);
-    assert.doesNotMatch((view.webview as vscode.Webview).html, /Loading BranchShift/);
-  });
+    assert.doesNotMatch(
+      (view.webview as vscode.Webview).html,
+      /Loading BranchShift/,
+    );
+    },
+  );
 
-  it("does not register a disposed view after activation becomes ready", async () => {
+  it(
+    "does not register a disposed view after activation becomes ready",
+    async () => {
     let markReady!: () => void;
     const ready = new Promise<void>((resolve) => {
       markReady = resolve;
@@ -92,7 +100,8 @@ describe("CommitViewProvider panel ownership", () => {
     await Promise.resolve();
 
     assert.strictEqual(registered, 0);
-  });
+    },
+  );
 
   it("does not change the bottom panel when the Commit view is hidden", () => {
     const executedCommands: string[] = [];
