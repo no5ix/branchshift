@@ -1988,6 +1988,12 @@ export async function activate(context: vscode.ExtensionContext) {
     if (activeRepoId) void fetchRepository(activeRepoId).catch(() => {});
   }
 
+  messageRouter.handle("fetchAll", async (_params, ctx) => {
+    if (!ctx) return NOT_GIT_REPO;
+    await fetchRepository(ctx.repoId);
+    return { success: true };
+  });
+
   messageRouter.handle("setFavorite", async (params, ctx) => {
     if (!ctx) return NOT_GIT_REPO;
     const ref = params.ref as GitRefIdentity | undefined;
