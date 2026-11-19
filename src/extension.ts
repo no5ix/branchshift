@@ -2222,8 +2222,6 @@ export async function activate(context: vscode.ExtensionContext) {
   // Keep remote-tracking refs and ahead/behind indicators fresh.
   // Run in the extension host so this remains active while the webview is hidden.
   // Repository switches are announced after the active id is committed.
-  const currentActiveRepoId = () => repoRegistry.getActiveId();
-  lastActiveRepoId = currentActiveRepoId();
   const fetchTimer = setInterval(fetchActiveRepository, FETCH_INTERVAL_MS);
   context.subscriptions.push({ dispose: () => clearInterval(fetchTimer) });
   context.subscriptions.push(
@@ -2234,6 +2232,17 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
   );
   fetchActiveRepository();
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("branchshift.__automaticFetchRepoChanged", () => {
+      const activeRepoId = repoRegistry.getActiveId();
+      if (activeRepoId && activeRepoId !== lastActiveRepoId) {
+        lastActiveRepoId = activeRepoId;
+        fetchActiveRepository();
+      }
+    }),
+  );
+  const fetchTimer = setInterval(fetchActiveRepository, FETCH_INTERVAL_MS);
 
   messageRouter.enableStrictRepoContext();
 }
