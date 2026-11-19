@@ -36,75 +36,66 @@ function createFakeWebviewView(initialVisible: boolean): FakeWebviewView {
 }
 
 describe("CommitViewProvider panel ownership", () => {
-  it(
-    "keeps the Commit container resolvable while activation is still running",
-    async () => {
-      let markReady!: () => void;
-      const ready = new Promise<void>((resolve) => {
-        markReady = resolve;
-      });
-      let registered = 0;
-      const provider = new CommitViewProvider(
-        vscode.Uri.file("/extension"),
-        {
-          registerWebview: () => {
-            registered += 1;
-            return { dispose() {} };
-          },
-          broadcastEvent: () => {},
-        } as never,
-        { getActive: () => null } as never,
-        ready,
-      );
-      const view = createFakeWebviewView(true);
+  it("keeps the Commit container resolvable while activation is still running", async () => {
+    let markReady!: () => void;
+    const ready = new Promise<void>((resolve) => {
+      markReady = resolve;
+    });
+    let registered = 0;
+    const provider = new CommitViewProvider(
+      vscode.Uri.file("/extension"),
+      {
+        registerWebview: () => {
+          registered += 1;
+          return { dispose() {} };
+        },
+        broadcastEvent: () => {},
+      } as never,
+      { getActive: () => null } as never,
+      ready,
+    );
+    const view = createFakeWebviewView(true);
 
-      provider.resolveWebviewView(view, {} as never, {} as never);
-      assert.match(
-        (view.webview as vscode.Webview).html,
-        /Loading BranchShift/,
-      );
-      assert.strictEqual(registered, 0);
+    provider.resolveWebviewView(view, {} as never, {} as never);
+    assert.match((view.webview as vscode.Webview).html, /Loading BranchShift/);
+    assert.strictEqual(registered, 0);
 
-      markReady();
-      await Promise.resolve();
-      assert.strictEqual(registered, 1);
-      assert.doesNotMatch(
-        (view.webview as vscode.Webview).html,
-        /Loading BranchShift/,
-      );
-    },
-  );
+    markReady();
+    await Promise.resolve();
+    assert.strictEqual(registered, 1);
+    assert.doesNotMatch(
+      (view.webview as vscode.Webview).html,
+      /Loading BranchShift/,
+    );
+  });
 
-  it(
-    "does not register a disposed view after activation becomes ready",
-    async () => {
-      let markReady!: () => void;
-      const ready = new Promise<void>((resolve) => {
-        markReady = resolve;
-      });
-      let registered = 0;
-      const provider = new CommitViewProvider(
-        vscode.Uri.file("/extension"),
-        {
-          registerWebview: () => {
-            registered += 1;
-            return { dispose() {} };
-          },
-          broadcastEvent: () => {},
-        } as never,
-        { getActive: () => null } as never,
-        ready,
-      );
-      const view = createFakeWebviewView(false);
+  it("does not register a disposed view after activation becomes ready", async () => {
+    let markReady!: () => void;
+    const ready = new Promise<void>((resolve) => {
+      markReady = resolve;
+    });
+    let registered = 0;
+    const provider = new CommitViewProvider(
+      vscode.Uri.file("/extension"),
+      {
+        registerWebview: () => {
+          registered += 1;
+          return { dispose() {} };
+        },
+        broadcastEvent: () => {},
+      } as never,
+      { getActive: () => null } as never,
+      ready,
+    );
+    const view = createFakeWebviewView(false);
 
-      provider.resolveWebviewView(view, {} as never, {} as never);
-      view.triggerDispose();
-      markReady();
-      await Promise.resolve();
+    provider.resolveWebviewView(view, {} as never, {} as never);
+    view.triggerDispose();
+    markReady();
+    await Promise.resolve();
 
-      assert.strictEqual(registered, 0);
-    },
-  );
+    assert.strictEqual(registered, 0);
+  });
 
   it("does not change the bottom panel when the Commit view is hidden", () => {
     const executedCommands: string[] = [];
