@@ -110,6 +110,7 @@ function PanelContent() {
   const resetForRepoSwitch = useGitLogStore((s) => s.resetForRepoSwitch);
   const clearForNoRepo = useGitLogStore((s) => s.clearForNoRepo);
   const repos = useRepoStore((s) => s.repos);
+  const fileHistoryActive = useGitLogStore((s) => s.filter.file !== "");
 
   const [showLeft, setShowLeft] = useState(true);
   const [showRight, setShowRight] = useState(true);
@@ -303,7 +304,7 @@ function PanelContent() {
               >
                 <Toolbar />
                 <LoadErrorBanner />
-                <GitGraphPanel />
+                <GitGraphPanel showGraph={!fileHistoryActive} />
               </div>
             </Allotment.Pane>
             <Allotment.Pane
