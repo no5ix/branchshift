@@ -2046,7 +2046,6 @@ export async function activate(context: vscode.ExtensionContext) {
   ) => {
     const repoName = repo ? formatRepoLabel(repo, repoRegistry.list()) : "";
     messageRouter.broadcastEvent("activeRepoChanged", { repo, repoName });
-    fetchOnRepoSwitch();
   };
 
   // Task 24 (P2#6) + Fix-5 (F5): serialize concurrent selects via a
@@ -2059,6 +2058,18 @@ export async function activate(context: vscode.ExtensionContext) {
   // `select` and a folder-reconciliation pass can NEVER interleave — closing
   // the three-way-split window (registry=A, response=B, broadcast=null) that
   // existed when each had its own private promise-chain.
+  const broadcastActiveRepoChanged = (
+    repo: { id: string; name: string; rootPath: string } | null,
+  ) => {
+    const repoName = repo ? formatRepoLabel(repo, repoRegistry.list()) : "";
+    messageRouter.broadcastEvent("activeRepoChanged", { repo, repoName });
+    const activeRepoId = repo?.id ?? null;
+    if (activeRepoId && activeRepoId !== lastActiveRepoId) {
+      lastActiveRepoId = activeRepoId;
+      if (windowFocused) void fetchRepository(activeRepoId).catch(() => {});
+    }
+  };
+
   const selectionSerializer = new Serializer();
   const selectionCoordinator = new RepoSelectionCoordinator(
     repoRegistry,
