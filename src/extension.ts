@@ -2233,16 +2233,6 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
   );
 
-  const fetchOnRepoSwitch = () => {
-    const activeRepoId = repoRegistry.getActiveId();
-    if (activeRepoId && activeRepoId !== lastActiveRepoId) {
-      lastActiveRepoId = activeRepoId;
-      if (windowFocused) {
-        void fetchRepository(activeRepoId).catch(() => {});
-      }
-    }
-  };
-
   messageRouter.enableStrictRepoContext();
 }
 
